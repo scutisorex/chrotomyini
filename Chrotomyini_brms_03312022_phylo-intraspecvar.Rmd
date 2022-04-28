@@ -1,0 +1,808 @@
+---
+title: "Chrotomyini intraspecies/phylo models"
+author: "S.M. Smith"
+date: "3/31/2022"
+output: html_document
+---
+
+
+A handy reminder: a new %>% is made with ctrl+shift+m.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(install = F, "ape", "bayesplot","BiocManager", "brms", "broom", "dagitty", "devtools", "flextable", "GGally", "ggdag", "ggdark", "ggmcmc", "ggrepel", "ggthemes",  "ghibli", "gtools", "loo", "patchwork", "psych", "rcartocolor", "Rcpp", "remotes", "rstan", "StanHeaders", "statebins", "tidybayes", "viridis", "viridisLite", "wesanderson", "pacman")
+```
+
+Load up your guys and standardize:
+
+```{r}
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\04082022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+
+d <- d[d$tribe=="chroto",c(1:2, 4:21)]
+
+d <- 
+  d %>% 
+  mutate(bvtv = as.numeric(bvtv))
+
+d <- 
+  d %>%
+  mutate(mass_s = rethinking::standardize(log10(mass_g)),
+         elev_s = rethinking::standardize(elev), 
+         bvtv_s = rethinking::standardize(bvtv),
+         tbth_s = rethinking::standardize(tbth),
+         tbsp_s = rethinking::standardize(tbsp),
+         conn_s = rethinking::standardize(conn),
+         cond_s = rethinking::standardize(connd), 
+         da_s = rethinking::standardize(da))
+
+# remove C. gonzalesi and R. isarogensis
+d <- 
+  d %>% 
+  filter(taxon!="Chrotomys_gonzalesi") %>% 
+  filter(taxon!="Rhynchomys_isarogensis")
+
+d <- 
+  d %>%
+  mutate(loco = factor(loco), 
+         hab_simp = factor(hab_simp))
+
+```
+
+Load in phylogeny. 
+A PHYLO RELATED NOTE: courtesy of Jon Nations.
+A <- ape::vcv.phylo(phylo), add corr = T if your tree is NOT SCALED TO 1. 
+
+Intraspecies variation: +(1|taxon)
+Hadfield - and other things in Modern Phylogenetic Comparative methods
+
+```{r}
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+plot(ch.tre)
+
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+
+```
+
+Load your models from previous analysis: 
+ch.4: LOCOMOTOR MODE ONLY (effect of locomotor mode on bvtv.)
+```{r}
+ch.4 <- 
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + loco,
+      prior = c(prior(normal(0, 0.5), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      seed = 5,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.04")
+print(ch.4)
+
+```
+
+ch.7: A model that includes a categorical predictor (locmotor mode) and a continuous predictor (mass).
+```{r}
+ch.7 <-
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + loco + mass_s,
+      prior = c(prior(normal(0, 1), class = b, coef = locoscans),
+                prior(normal(0, 1), class = b, coef = locoterr),
+                prior(normal(0, 1), class = b, coef = locofos_hum),
+                prior(normal(0, 1), class = b, coef = locofos_com),
+                prior(normal(0, 1), class = b, coef = locoric),
+                prior(normal(0, 1), class = b, coef = mass_s),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      sample_prior = T,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.07")
+
+
+print(ch.7)
+
+```
+
+ch.11: A similar model that includes intraspecific variation: + (1|taxon) at the end of the formula. Considers contribution of variation among species to estimated values for bvtv.
+```{r}
+ch.11 <-
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + loco + mass_s + (1|taxon),
+      prior = c(prior(normal(0, 1), class = b, coef = locoscans),
+                prior(normal(0, 1), class = b, coef = locoterr),
+                prior(normal(0, 1), class = b, coef = locofos_hum),
+                prior(normal(0, 1), class = b, coef = locofos_com),
+                prior(normal(0, 1), class = b, coef = locoric),
+                prior(normal(0, 1), class = b, coef = mass_s),
+                prior(normal(0, 1), class = sd)),
+                prior(exponential(1), class = sigma),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.11")
+
+print(ch.11)
+
+```
+
+ch.12: Another other model that includes phylogenetic correlation structure:
+```{r}
+
+
+ch.12 <-
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + loco + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.9), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = locoscans),
+        prior(normal(0, 1), class = b, coef = locoterr),
+        prior(normal(0, 1), class = b, coef = locofos_hum),
+        prior(normal(0, 1), class = b, coef = locofos_com),
+        prior(normal(0, 1), class = b, coef = locoric),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.12")
+
+print(ch.12)
+
+```
+
+Plot all your mean estimates from all four models (ch.4, 7, 11, 12):
+```{r}
+
+plot4 <- mcmc_plot(ch.4, variable = "^b_loc", regex = T) +
+  ggtitle("ch.4, locomotor as predictor")
+
+plot7 <- mcmc_plot(ch.7, variable = "^b_loc", regex = T) +
+  ggtitle("ch.7, loco + mass as predictor")
+
+plot11 <- mcmc_plot(ch.11, variable = "^b_loc", regex = T) +
+  ggtitle("ch.11, 7 + intraspec variation")
+
+plot12 <- mcmc_plot(ch.12, variable = "^b_loc", regex = T) +
+  ggtitle("ch.12, 11 + phylo correlation")
+
+
+(plot4|plot7)/(plot11|plot12)
+```
+Do a compare, perhaps:
+```{r}
+
+ch.4 <- add_criterion(ch.4, "waic") 
+ch.4 <- add_criterion(ch.4, "loo") 
+
+ch.7 <- add_criterion(ch.7, "waic") 
+ch.7 <- add_criterion(ch.7, "loo") 
+
+ch.11 <- add_criterion(ch.11, "waic") 
+ch.11 <- add_criterion(ch.11, "loo") 
+
+ch.12 <- add_criterion(ch.12, "waic") 
+ch.12 <- add_criterion(ch.12, "loo") 
+
+
+loo_compare(ch.4, ch.7, ch.11, ch.12, criterion = "waic") %>%
+  print(simplify = F)
+
+```
+
+```{r}
+tibble(k   = ch.12$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k))
+```
+
+
+
+Plot ch.12 alone:
+```{r}
+mcmc_plot(ch.12, variable = "^b_loc", regex = T) +
+  ggtitle("Bone volume fraction, loc + mass + phylo + instrasp.")
+
+```
+
+Check fit for ch.12:
+```{r}
+pp_check(ch.12) # Pretty good? Looks like most of the density is in the right place at least.
+```
+
+
+Phylogenetic signal (lambda) for ch.12. I used the version including the estimate of the influence of intraspecies variation, because ch.12 also includes the (1|taxon) term:
+```{r}
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+(hyp <- hypothesis(ch.12, hyp, class = NULL))
+```
+
+ch.23, WITH loco, mass, and phylo, no intraspecific var:
+```{r}
+ch.23 <-
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + loco + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.9), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = locoscans),
+        prior(normal(0, 1), class = b, coef = locoterr),
+        prior(normal(0, 1), class = b, coef = locofos_hum),
+        prior(normal(0, 1), class = b, coef = locofos_com),
+        prior(normal(0, 1), class = b, coef = locoric),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.23")
+plot(ch.23, N = 3, ask = F)
+```
+
+
+Compare between locomotor modes for ch.12:
+```{r}
+ch.12 %>%
+  gather_draws(b_locofos_com,b_locofos_hum, b_locoric, b_locoscans, b_locoterr) %>%
+  head(10)
+
+ch.12 %>%
+  gather_draws(b_locofos_com,b_locofos_hum, b_locoric, b_locoscans, b_locoterr) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed")
+```
+```{r}
+mcmc_plot(ch.12, variable = "^r_taxon", regex = T)
+```
+
+```{r}
+mcmc_plot(ch.12, variable = "^r_phylo", regex = T)
+```
+
+
+ch.13: Let's do one for trabecular thickness:
+```{r}
+ch.13 <- # L U C K Y
+  brm(data = d, 
+      family = gaussian,
+      tbth_s ~ 0 + loco + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = locoscans),
+        prior(normal(0, 1), class = b, coef = locoterr),
+        prior(normal(0, 1), class = b, coef = locofos_hum),
+        prior(normal(0, 1), class = b, coef = locofos_com),
+        prior(normal(0, 1), class = b, coef = locoric),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.13")
+
+print(ch.13)
+```
+
+Plot:
+```{r}
+mcmc_plot(ch.13, variable = "^b_loc", regex = T) +
+  ggtitle("Trabecular thickness, loc + mass + phylo + instrasp.")
+  
+```
+```{r}
+pp_check(ch.13) #Pretty good fit. The right shape, mostly.
+```
+```{r}
+ch.13 %>%
+  gather_draws(b_locofos_com,b_locofos_hum, b_locoric, b_locoscans, b_locoterr) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed")
+```
+
+
+Phylogenetic signal (lambda):
+```{r}
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+(hyp <- hypothesis(ch.13, hyp, class = NULL))
+```
+
+ch.14: Degree of Anisotropy:
+```{r}
+ch.14 <- 
+  brm(data = d, 
+      family = gaussian,
+      da_s ~ 0 + loco + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.9), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = locoscans),
+        prior(normal(0, 1), class = b, coef = locoterr),
+        prior(normal(0, 1), class = b, coef = locofos_hum),
+        prior(normal(0, 1), class = b, coef = locofos_com),
+        prior(normal(0, 1), class = b, coef = locoric),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.14")
+
+print(ch.14)
+
+```
+
+```{r}
+pp_check(ch.14) #looks like a decent fit
+```
+
+Phylogenetic signal (lambda):
+
+```{r}
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+(hyp <- hypothesis(ch.14, hyp, class = NULL))
+```
+
+Plot:
+```{r}
+mcmc_plot(ch.14, variable = "^b_loc", regex = T) +
+  ggtitle("Degree of Anisotropy, loc + mass + phylo + instrasp.")
+```
+```{r}
+ch.14 %>%
+  gather_draws(b_locofos_com,b_locofos_hum, b_locoric, b_locoscans, b_locoterr) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed")
+```
+
+```{r}
+ch.14 <- add_criterion(ch.14, "waic")
+ch.14 <- add_criterion(ch.14, "loo")
+tibble(k   = ch.14$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k))
+
+```
+
+
+Connectivity:
+
+```{r}
+ch.15 <- 
+  brm(data = d, 
+      family = gaussian,
+      cond_s ~ 0 + loco + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.9), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = locoscans),
+        prior(normal(0, 1), class = b, coef = locoterr),
+        prior(normal(0, 1), class = b, coef = locofos_hum),
+        prior(normal(0, 1), class = b, coef = locofos_com),
+        prior(normal(0, 1), class = b, coef = locoric),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.15")
+
+print(ch.15)
+```
+
+```{r}
+pp_check(ch.15) # That's not a very good fit - a lot of the draws have the density right-shifted. Investigate why this is.
+```
+
+Phylogenetic signal (lambda):
+
+```{r}
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+(hyp <- hypothesis(ch.15, hyp, class = NULL))
+```
+
+
+Plot:
+```{r}
+mcmc_plot(ch.15, variable = "^b_loc", regex = T) +
+  ggtitle("Connectivity, loc + mass + phylo + instrasp.")
+```
+```{r}
+ch.15 %>%
+  gather_draws(b_locofos_com,b_locofos_hum, b_locoric, b_locoscans, b_locoterr) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed")
+
+ch.15 <- add_criterion(ch.15, "loo")
+ch.15 <- add_criterion(ch.15, "waic")
+tibble(k   = ch.15$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k))
+```
+
+Let's pull together some parameters for use in the abstrat. 
+
+```{r}
+mass_pars <- tibble(.rows = 4)
+
+for (i in 12:15){
+  mod <- toString(paste("ch.", i, sep = ""))
+  pars = fixef(get(mod), pars = "mass_s")
+  mass_pars[(i-11),1] <- pars[1]
+  mass_pars[(i-11),2] <- pars[2]
+  mass_pars[(i-11),3] <- pars[3]
+  mass_pars[(i-11),4] <- pars[4]
+}  
+  
+model <- c("ch.12 (bvtv)", "ch.13 (tbth)", "ch.14 (DA)", "ch.15 (conn)")
+mass_pars <- cbind(model, mass_pars)
+colnames(mass_pars) <- c("model","estimate", "error", "Q5", "Q95")
+
+mass_pars
+```
+
+
+```{r}
+phylo_pars <- tibble(.rows = 4)
+for (i in 12:15){
+  mod <- toString(paste("ch.", i, sep = ""))
+  b <- VarCorr(get(mod))
+  b <- b$phylo$sd
+  phylo_pars[(i-11),1] <- b[1]
+  phylo_pars[(i-11),2] <- b[2]
+  phylo_pars[(i-11),3] <- b[3]
+  phylo_pars[(i-11),4] <- b[4]
+  hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+  lambda <- hypothesis(get(mod), hyp, class = NULL)
+  phylo_pars[(i-11),5] <- lambda$hypothesis$Estimate
+}  
+
+model <- c("ch.12 (bvtv)", "ch.13 (tbth)", "ch.14 (DA)", "ch.15 (conn)")
+phylo_pars <- cbind(model, phylo_pars)
+colnames(phylo_pars) <- c("model","estimate", "error", "Q5", "Q95", "lambda")
+
+phylo_pars
+
+```
+
+
+-----------------------------------------------------------------------------------------
+Separating by habitat rather than locomotor mode:
+-----------------------------------------------------------------------------------------
+
+Bone volume fraction x habitat. Start simple and increase in complexity as you go. 
+
+```{r}
+
+ch.16 <- 
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + hab_simp,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.16")
+print(ch.16)
+mcmc_plot(ch.16)
+```
+
+What if we exclude the transitional ones? montane-mossy is entirely represented by one taxon (Rhynchomys labo), but it does not include the whole sample of that taxon.
+
+```{r}
+dd <- d 
+
+dd <- 
+  dd %>% 
+  filter(hab_simp != "low_mont", 
+         hab_simp != "mont_mos") %>% 
+  droplevels(dd$hab_simp)
+
+ch.17 <- 
+  brm(data = dd, 
+      family = gaussian,
+      bvtv_s ~ 0 + hab_simp,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.17")
+print(ch.17)
+mcmc_plot(ch.17, variable = "^b_hab", regex = T) +
+  ggtitle("BVTV, habitat only as predictor")
+
+```
+
+Ok that seems interesting. lowland animals have higher bvtv on average, mossy forest animals have lower. Is that related to body size? (survey says.... almost certainly yes)
+
+```{r}
+ch.18 <-
+  brm(data = dd, 
+      family = gaussian,
+      bvtv_s ~ 0 + hab_simp + mass_s,
+      prior = c(prior(normal(0, 1), class = b, coef = hab_simpmossy),
+                prior(normal(0, 1), class = b, coef = hab_simpmontane),
+                prior(normal(0, 1), class = b, coef = hab_simplowland),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      sample_prior = T,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.18")
+
+
+print(ch.18)
+```
+Take a look: 
+```{r}
+mcmc_plot(ch.18, variable = "^b_hab", regex = T) +
+  ggtitle("BVTV, habitat and mass as predictors")
+```
+
+```{r}
+pp_check(ch.18) #.....it's not the WORST fit I've seen?
+```
+
+Include intraspecies variation:
+
+```{r}
+
+ch.19 <-
+  brm(data = dd, 
+      family = gaussian,
+      bvtv_s ~ 0 + hab_simp + mass_s + (1|taxon),
+      prior = c(prior(normal(0, 1), class = b, coef = hab_simpmossy),
+                prior(normal(0, 1), class = b, coef = hab_simpmontane),
+                prior(normal(0, 1), class = b, coef = hab_simplowland),
+                prior(normal(0, 1), class = sd),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      sample_prior = T,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.19")
+
+
+print(ch.19)
+
+
+```
+
+```{r}
+mcmc_plot(ch.19, variable = "^b_hab", regex = T) +
+  ggtitle("BVTV, ch.18 + intraspecies var")
+```
+
+What's driving that huge error on the lowland guys??
+
+```{r}
+f <- as.data.frame(fitted(ch.19))
+
+f <- 
+  f %>% 
+  add_column(dd$mass_s) %>% 
+  add_column(dd$hab_simp)
+
+f <-
+  f %>% 
+  rename(mass_s = "dd$mass_s",
+         hab_simp = "dd$hab_simp")
+  
+p1 <-
+  dd %>%
+    ggplot(aes(x = mass_s, fill = hab_simp, color = hab_simp)) +
+    geom_point(aes(y = bvtv_s),
+             size = 2) +
+    geom_text_repel(data = . %>% 
+                    filter(specno %in% c("236310", "193526", "216435", "221833")),  
+                  aes(y = bvtv_s,
+                      label = specno), 
+                  size = 3,) +
+    scale_fill_pander() +
+    scale_colour_pander() +
+    geom_smooth(data = f, # see here is where you put all the posterior samples to make the ribonny guy
+            aes(y = Estimate, ymin = Q2.5, ymax = Q97.5),
+            stat = "identity",  
+            alpha = 1/4, size = 1/2) +
+    labs(subtitle = "ch.19, hab + mass + taxon",
+       x = "log mass (standardized)",
+       y = "bone volume fraction (standardized)") +
+    theme(legend.background = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = c(0.3, .93),
+        legend.title = element_blank())
+
+p1
+```
+
+Include phylogenetic structure:
+```{r}
+ch.20 <- 
+  brm(data = dd, 
+      family = gaussian,
+      bvtv_s ~ 0 + hab_simp + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(prior(normal(0, 1), class = b, coef = hab_simpmossy),
+                prior(normal(0, 1), class = b, coef = hab_simpmontane),
+                prior(normal(0, 1), class = b, coef = hab_simplowland),
+                prior(normal(0, 1), class = b, coef = mass_s),
+                prior(normal(0, 1), class = sd),
+                prior(exponential(1), class = sigma)
+                ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.20")
+print(ch.20)
+plot(ch.20, N=3, ask = F)
+```
+
+Plot to compare differences between habitats:
+```{r}
+ch.20 %>%
+  gather_draws(b_hab_simplowland, b_hab_simpmontane, b_hab_simpmossy) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed")
+```
+
+Lettuce look at some other variablez:
+
+Trabecular thickness:
+
+```{r}
+
+ch.21 <- 
+  brm(data = dd, 
+      family = gaussian,
+      tbth_s ~ 0 + hab_simp + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(prior(normal(0, 1), class = b, coef = hab_simpmossy),
+                prior(normal(0, 1), class = b, coef = hab_simpmontane),
+                prior(normal(0, 1), class = b, coef = hab_simplowland),
+                prior(normal(0, 1), class = b, coef = mass_s),
+                prior(normal(0, 1), class = sd),
+                prior(exponential(1), class = sigma)
+                ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.21")
+print(ch.21)
+plot(ch.21, N=3, ask = F)
+```
+
+Degree of Anisotropy:
+```{r}
+ch.22 <- 
+  brm(data = dd, 
+      family = gaussian,
+      da_s ~ 0 + hab_simp + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(prior(normal(0, 1), class = b, coef = hab_simpmossy),
+                prior(normal(0, 1), class = b, coef = hab_simpmontane),
+                prior(normal(0, 1), class = b, coef = hab_simplowland),
+                prior(normal(0, 1), class = b, coef = mass_s),
+                prior(normal(0, 1), class = sd),
+                prior(exponential(1), class = sigma)
+                ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.22")
+print(ch.22)
+plot(ch.22, N=3, ask = F)
+```
+
+That is a big difference for montane animals. Let's see who it is. I bet it's Soricomys.
+
+```{r}
+ch.22 <- add_criterion(ch.22, "waic") # hahahahah 7 observations with >0.4
+ch.22 <- add_criterion(ch.22, "loo") # 2 observations with k>0.7. Damn dude.
+tibble(k   = ch.22$criteria$loo$diagnostics$pareto_k,
+       row = 1:60,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k))
+```
+
+Jeezus 188356 C. whiteheadi has Pareto k = 0.94??!??! 
+
+
+```{r}
+f <- as.data.frame(fitted(ch.22))
+
+f <- 
+  f %>% 
+  add_column(dd$mass_s) %>% 
+  add_column(dd$hab_simp)
+
+f <-
+  f %>% 
+  rename(mass_s = "dd$mass_s",
+         hab_simp = "dd$hab_simp")
+  
+
+p22 <-
+  dd %>%
+    ggplot(aes(x = mass_s, fill = hab_simp, color = hab_simp)) +
+    geom_point(aes(y = da_s),
+             size = 2) +
+    geom_text_repel(data = . %>% 
+                    filter(specno %in% c("188356", "221843", "189836", "218313", "190965", "221838")),  
+                  aes(y = da_s,
+                      label = specno), 
+                  size = 3,) +
+    #scale_fill_pander() +
+    #scale_colour_pander() +
+  geom_smooth(data = f, # see here is where you put all the posterior samples to make the ribonny guy
+            aes(y = Estimate, ymin = Q2.5, ymax = Q97.5),
+            stat = "identity",  
+            alpha = 1/4, size = 1/2) +
+    labs(subtitle = "ch.22, hab + mass + taxon + phylo on DA",
+       x = "log mass (standardized)",
+       y = "degree of anisotropy (standardized)") +
+    theme(legend.background = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = c(0.3, .93),
+        legend.title = element_blank())
+
+p22
+```
+
+It's probably worth running again without that outlier, just to see what happens... Although I'm just generally suspicious of its high k because none of its values seem out of the ordinary. It may be because it's relatively small (135g) but other females in that species are in the 120s so wtf? Honestly it looks like it's right in the middle of the field so why are the CIs so huge on it? that makes no sense. Looks like its error is 0.45 which is about 2x as big as all the other ones (~0.2). 
+
+FIGURE IT OUT TOMORROW. That's a high Pareto k, but how does it work??
+
+
+```{r}
+# Plotting function from JAN
+con_ef <- function(mod){
+  ce <- conditional_effects({{mod}}, categorical = TRUE, prob = 0.8)
+  plot(ce, plot = FALSE)[[1]] +
+  facet_wrap("cats__") +
+  scale_fill_manual(values = wes_palette("Moonrise2")[c(5,4,3, 2, 1)]) +
+  scale_color_manual(values = wes_palette("Moonrise2")[c(5,4,3, 2, 1)]) +
+  ylim(0,1) +
+  theme_classic()
+}
+
+
+ch.24 <- brm(
+  family = categorical(),
+  loco ~ tbth_s,
+  data = d, 
+)
+
+con_ef(ch.24)
+
+
+ch.25 <- brm(
+  family = categorical(),
+  loco ~ tbth_s + mass_s,
+  data = d, 
+)
+
+ch.26 <- brm(
+  family = categorical(),
+  loco ~ bvtv_s + mass_s,
+  data = d, 
+)
+con_ef(ch.26)
+```
+
