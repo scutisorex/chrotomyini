@@ -56,6 +56,26 @@ levelplot(dcor, col.regions = mako(100))
 ```
 
 ![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
+
+
+Load in phylogeny: 
+REMEMBER: A <- ape::vcv.phylo(phylo), add corr = T if your tree is NOT SCALED TO 1. 
+
+```r
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+plot(ch.tre)
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+
+```r
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+```
+
 Plot of Chrotomys only:
 
 ```r
@@ -77,25 +97,210 @@ chtbsp<- d %>%
 chbvf|chtbth
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
-
-Load in phylogeny: 
-REMEMBER: A <- ape::vcv.phylo(phylo), add corr = T if your tree is NOT SCALED TO 1. 
-
-```r
-ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
-plot(ch.tre)
-```
-
 ![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
-```r
-ch <- ape::vcv.phylo(ch.tre, corr = T)
+Model of Chrotomys only: 
 
-d <- 
-  d %>% 
-  mutate(phylo = taxon)
+```r
+# Chrotomys only data set
+chronly <- d %>%
+  filter(genus == "Chrotomys")
+
+# Chrotomys only tree
+chron_tre <-keep.tip(ch.tre,ch.tre$tip.label[grep("Chrotomys",ch.tre$tip.label)])
+chcov <- ape::vcv.phylo(chron_tre, corr = T)
+
+# by taxon only
+ch.45 <- 
+  brm(data = chronly, 
+      family = gaussian,
+      bvtv_s ~ 0 + taxon,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.45")
+print(ch.45)
 ```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: bvtv_s ~ 0 + taxon 
+##    Data: chronly (Number of observations: 19) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## taxonChrotomys_mindorensis     1.20      0.28     0.62     1.75 1.00     4033
+## taxonChrotomys_silaceus       -0.26      0.26    -0.76     0.26 1.00     4610
+## taxonChrotomys_whiteheadi      1.20      0.28     0.63     1.73 1.00     4303
+##                            Tail_ESS
+## taxonChrotomys_mindorensis     2714
+## taxonChrotomys_silaceus        3138
+## taxonChrotomys_whiteheadi      2826
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.71      0.13     0.52     1.03 1.00     3114     2829
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+mcmc_plot(ch.45)
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+```r
+# by taxon plus mass
+ch.46 <- 
+  brm(data = chronly, 
+      family = gaussian,
+      bvtv_s ~ 0 + taxon + mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.46")
+print(ch.46)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: bvtv_s ~ 0 + taxon + mass_s 
+##    Data: chronly (Number of observations: 19) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## taxonChrotomys_mindorensis    -0.03      0.48    -0.93     0.93 1.00     1435
+## taxonChrotomys_silaceus       -0.83      0.29    -1.39    -0.24 1.00     1728
+## taxonChrotomys_whiteheadi      0.18      0.42    -0.63     1.00 1.00     1555
+## mass_s                         1.05      0.35     0.36     1.73 1.00     1355
+##                            Tail_ESS
+## taxonChrotomys_mindorensis     1724
+## taxonChrotomys_silaceus        1949
+## taxonChrotomys_whiteheadi      2163
+## mass_s                         1746
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.58      0.11     0.41     0.84 1.00     1718     1954
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+mcmc_plot(ch.46)
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+
+```r
+# by taxon plus mass plus phy/intrasp
+ch.47 <-
+  brm(data = chronly, 
+      family = gaussian,
+      bvtv_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = chcov)) + (1|taxon),
+      control = list(adapt_delta = 0.97), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = taxonChrotomys_whiteheadi),
+        prior(normal(0, 1), class = b, coef = taxonChrotomys_silaceus),
+        prior(normal(0, 1), class = b, coef = taxonChrotomys_mindorensis),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(chcov = chcov),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.47")
+print(ch.47)
+```
+
+```
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta
+## above 0.97 may help. See http://mc-stan.org/misc/warnings.html#divergent-
+## transitions-after-warmup
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: bvtv_s ~ 0 + taxon + mass_s + (1 | gr(phylo, cov = chcov)) + (1 | taxon) 
+##    Data: chronly (Number of observations: 19) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~phylo (Number of levels: 3) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.59      0.46     0.02     1.68 1.00     2526     2107
+## 
+## ~taxon (Number of levels: 3) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.56      0.43     0.02     1.62 1.00     2262     1422
+## 
+## Population-Level Effects: 
+##                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## taxonChrotomys_mindorensis    -0.06      0.70    -1.42     1.36 1.00     3201
+## taxonChrotomys_silaceus       -0.50      0.67    -1.74     0.91 1.00     3108
+## taxonChrotomys_whiteheadi      0.12      0.67    -1.24     1.41 1.00     3314
+## mass_s                         1.07      0.39     0.25     1.81 1.00     3658
+##                            Tail_ESS
+## taxonChrotomys_mindorensis     2725
+## taxonChrotomys_silaceus        2886
+## taxonChrotomys_whiteheadi      2511
+## mass_s                         2754
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.58      0.11     0.41     0.85 1.00     3670     2583
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+mcmc_plot(ch.47)
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-3.png)<!-- -->
+
+```r
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
+chrot.bvtv <- hypothesis(ch.47, hyp, class = NULL)
+chrot.bvtv.pl <- ggplot() +
+  stat_halfeye(aes(x = chrot.bvtv$samples$H1), fill = "red", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: bone volume fraction")
+chrot.bvtv.pl
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-4.png)<!-- -->
+
+
+```r
+ch.47 %>%
+  gather_draws(b_taxonChrotomys_whiteheadi,b_taxonChrotomys_silaceus, b_taxonChrotomys_mindorensis) %>%
+  compare_levels(.value, by = .variable) %>%
+  ungroup() %>%
+  #mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(.width = .89) +
+  geom_vline(xintercept = 0, linetype = "dashed")
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
 
 ch.24: compare bvtv across genera, no phylo or nothin
 
@@ -141,7 +346,7 @@ print(ch.24)
 mcmc_plot(ch.24)
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 ```r
 ch.24 %>%
@@ -161,7 +366,7 @@ ch.24 %>%
   ggtitle(label = "Bone volume fraction by genus, no size or phylo")
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
 ch.25: compare bvtv across genera, mass but no phylo
 
 
@@ -212,7 +417,7 @@ mcmc_plot(ch.25, "^b_", regex = T)
 ## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ```r
 ch.25 %>%
@@ -232,7 +437,7 @@ ch.25 %>%
   ggtitle(label = "Bone volume fraction by genus, no phylo")
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-5-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
 ...this is not at all what I expected?
 
 
@@ -307,7 +512,7 @@ mcmc_plot(ch.26, "^b_", regex = T)
 ## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 
 Halfeye plot: 
 
@@ -329,7 +534,7 @@ ch.26 %>%
   ggtitle(label = "Bone volume fraction by genus")
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 
 ```r
 ch.26 %>%
@@ -342,7 +547,7 @@ ch.26 %>%
   geom_vline(xintercept = 0, linetype = "dashed")
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-9-2.png)<!-- -->
 
 Combined halfeye plot of gradual addition of features to the model:
 
@@ -360,8 +565,8 @@ nomass_halfeye <- ch.24 %>%
                .width = .89) +
   scale_fill_manual(values = cols)+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  theme(legend.position = "none")#+
-  #ggtitle(label = "Bone volume fraction by genus, no size or phylo")
+  theme(legend.position = "none")+
+  ggtitle(label = "BVTV by genus only")
 
 nophy_halfeye <- ch.25 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
@@ -376,7 +581,7 @@ nophy_halfeye <- ch.25 %>%
                .width = .89) +
   scale_fill_manual(values = cols)+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  #ggtitle(label = "Bone volume fraction by genus, no phylo")+
+  ggtitle(label = "BVTV, mass only")+
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
@@ -395,7 +600,7 @@ all_halfeye <- ch.26 %>%
                .width = .89) +
   scale_fill_manual(values = cols)+
   geom_vline(xintercept = 0, linetype = "dashed")+
-  #ggtitle(label = "Bone volume fraction by genus")+
+  ggtitle(label = "BVTV, mass/phylo")+
   theme(legend.position = "none",
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
@@ -404,7 +609,7 @@ all_halfeye <- ch.26 %>%
 nomass_halfeye | nophy_halfeye | all_halfeye
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 
 ```r
@@ -527,7 +732,7 @@ print(ch.27)
 mcmc_plot(ch.27)
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 ```r
 ch.27 <- add_criterion(ch.27, "waic")
@@ -579,7 +784,7 @@ ch.27 %>%
         axis.title.y = element_blank())
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
 
 ch.28: da by genus, Include phylo and intraspec:
 
@@ -651,7 +856,7 @@ print(ch.28)
 mcmc_plot(ch.28)
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 ```r
 ch.28 %>%
@@ -674,7 +879,7 @@ ch.28 %>%
         axis.title.y = element_blank())
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
 
 A very striking difference in Soricomys!!! 
 
@@ -748,7 +953,7 @@ print(ch.29)
 mcmc_plot(ch.29)
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```r
 ch.29 %>%
@@ -771,7 +976,7 @@ ch.29 %>%
         axis.title.y = element_blank())
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-12-2.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
 
 
 Compile effects of mass across all different metrics:
@@ -812,7 +1017,7 @@ gmass.pl <-   gmass_b_all %>%
 gmass.pl
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
 
 Compile phylogenetic sd across all metrics:
 
@@ -852,12 +1057,12 @@ gph.pl <-   gphylo_sd_all %>%
 gph.pl
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 Do one for phylogenetic signal:
 
 ```r
-hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
 h.bvtv <- hypothesis(ch.26, hyp, class = NULL)
 h.tbth <- hypothesis(ch.27, hyp, class = NULL)
 h.tbsp <- hypothesis(ch.29, hyp, class = NULL)
@@ -890,5 +1095,109 @@ ph.da.pl <- ggplot()+
 ph.bvtv.pl/ph.tbth.pl/ph.tbsp.pl/ph.da.pl
 ```
 
-![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+----------------------------------
+Let's do some analyses that don't include mass as a covariate, but DO include phylogeny. 
+
+Bone volume fraction:
+
+
+```r
+ch.44 <- 
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + genus + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.89), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.44")
+
+ch.44 <- add_criterion(ch.44, "waic")
+ch.44 <- add_criterion(ch.44, "loo")
+
+print(ch.44)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: bvtv_s ~ 0 + genus + (1 | gr(phylo, cov = ch)) + (1 | taxon) 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~phylo (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.62      0.36     0.04     1.37 1.00     1133     1770
+## 
+## ~taxon (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.40      0.27     0.01     1.00 1.00     1019     1542
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys           0.13      0.54    -1.00     1.18 1.00     3425     2716
+## genusArchboldomys    -0.55      0.65    -1.78     0.77 1.00     4065     3026
+## genusChrotomys        0.56      0.55    -0.59     1.64 1.00     3648     2616
+## genusRhynchomys      -0.13      0.65    -1.41     1.15 1.00     4472     2900
+## genusSoricomys       -0.48      0.55    -1.52     0.63 1.00     3431     2942
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.70      0.07     0.58     0.85 1.00     5518     3021
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+mcmc_plot(ch.44, "^b_", regex = T)
+```
+
+```
+## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
+
+Compare: phy/mass (ch.26, all_halfeye), phy only (ch.44), mass only (ch.25,nophy_halfeye).
+
+
+```r
+phyonly_halfeye <- ch.44 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 7, 
+               point_color = "#FFFFFF",
+               interval_size = 15,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "BVTV, phy/int only")+
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank())
+nomass_halfeye|phyonly_halfeye|nophy_halfeye|all_halfeye
+```
+
+![](Chrotomyini_brms_04082022_genusasloco_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
+
+It's probably worth doing the other metrics later but for the moment I want to do some intrageneric Chrotomys stuff.
 

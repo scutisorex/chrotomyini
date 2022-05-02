@@ -110,8 +110,12 @@ ch.45 <-
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
       file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.45")
 print(ch.45)
-mcmc_plot(ch.45)
+mcmc_plot(ch.45)+
+  ggtitle("Chrotomys by taxon only")
+```
 
+
+```{r}
 # by taxon plus mass
 ch.46 <- 
   brm(data = chronly, 
@@ -122,8 +126,12 @@ ch.46 <-
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
       file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.46")
 print(ch.46)
-mcmc_plot(ch.46)
+mcmc_plot(ch.46)+
+  ggtitle("Chrotomys by taxon, incl mass")
+```
 
+
+```{r}
 # by taxon plus mass plus phy/intrasp
 ch.47 <-
   brm(data = chronly, 
@@ -142,7 +150,8 @@ ch.47 <-
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
       file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.47")
 print(ch.47)
-mcmc_plot(ch.47)
+mcmc_plot(ch.47)+
+  ggtitle("Chrotomys by taxon, ,incl mass, phy, intrasp var")
 
 hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
 chrot.bvtv <- hypothesis(ch.47, hyp, class = NULL)
@@ -205,7 +214,6 @@ ch.25 <-
       prior = c(prior(normal(0, 1), class = b),
                 prior(exponential(1), class = sigma)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      seed = 5,
       file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.25")
 print(ch.25)
 mcmc_plot(ch.25, "^b_", regex = T)
@@ -659,5 +667,50 @@ phyonly_halfeye <- ch.44 %>%
 nomass_halfeye|phyonly_halfeye|nophy_halfeye|all_halfeye
 ```
 
-It's probably worth doing the other metrics later but for the moment I want to do some intrageneric Chrotomys stuff.
+What about a model that uses only phylogeny as a predictor? Lettuce try it. 
+
+```{r}
+ch.48 <- 
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 1 + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.89), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.48")
+print(ch.48)
+ch.48 <- add_criterion(ch.48, "waic")
+ch.48 <- add_criterion(ch.48, "loo")
+
+ch.49 <- brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 1 + mass_s,
+      control = list(adapt_delta = 0.89), #inserted to decrease the number of divergent transitions here
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)
+                ),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.49")
+      
+print(ch.49)
+ch.49 <- add_criterion(ch.49, "waic")
+ch.49 <- add_criterion(ch.49, "loo")
+```
+
+Compare: phy only, genus only, mass only, genus + mass, genus + mass + phy + intrasp
+
+```{r}
+
+ch.24 <- add_criterion(ch.24, c("loo", "waic"))
+ch.25 <- add_criterion(ch.25, c("loo", "waic"))
+ch.26 <- add_criterion(ch.26, c("loo", "waic"))
+
+loo_compare(ch.24, ch.25, ch.26, ch.48, ch.49, criterion = "waic")%>% 
+  print(simplify = F)
+```
+
 
