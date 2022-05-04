@@ -1535,7 +1535,7 @@ ch.54_halfeye <- ch.54 %>%
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
 
-ch.29_halfeye <- ch.27 %>%
+ch.29_halfeye <- ch.29 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>% 
   ggplot(aes(y = .variable, x = .value)) +
@@ -1560,3 +1560,243 @@ ch.53_halfeye/ch.52.pl.nokey|ch.54_halfeye/ch.29_halfeye
 ```
 
 ![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
+
+From this set of plots, it looks like there is maybe something interesting going on with Rhynchomys. Even though there is almost full overlap between a lot of the probability distributions (even before considering phylogenetic covariance), the mean estimate for Rhynchomys departs from the global mean more than any of the other genera. This might also be driven by the large RANGE of values for Tb.Sp, which is especially common in Rhynchomys and Archboldomys. Sometimes they have areas where the "trabecular spacing" is equal to the entire internal diameter of the vertebral centrum because there are no trabeculae at all. I have a feeling that there will be a lot of outliers driving the patterns in this one. 
+
+Comparison plots:
+
+```r
+diff.tbth.ch.54 <- ch.54 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>% 
+  mutate(.variable = str_replace_all(.variable, "omys", "")) %>% 
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Tb.Sp difference, genus+mass")+
+  labs(x = "difference", y = "comparison")+
+  theme(plot.title = element_text(size = 9))+
+  scale_x_continuous(limits = c(-3, 3))
+
+diff.tbth.ch.29 <- ch.29 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>% 
+  mutate(.variable = str_replace_all(.variable, "omys", "")) %>% 
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Tb.Sp difference, genus+mass+phylo")+
+  labs(x = "difference", y = "comparison")+
+  theme(plot.title = element_text(size = 9))+
+  scale_x_continuous(limits = c(-3, 3))
+
+diff.tbth.ch.54|diff.tbth.ch.29
+```
+
+```
+## Warning: Removed 17 rows containing missing values (stat_slabinterval).
+```
+
+```
+## Warning: Removed 56 rows containing missing values (stat_slabinterval).
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-36-1.png)<!-- -->
+
+Sure enough, the ones involving Rhynchomys have the greatest mean departure from 0, but none of the differences look particularly significant. Gonna try to figure out what's driving this.
+
+
+```r
+ch.52 <- add_criterion(ch.52, c("loo", "waic"))
+ch.53 <- add_criterion(ch.53, c("loo", "waic"))
+ch.54 <- add_criterion(ch.54, c("loo", "waic"))
+ch.29 <- add_criterion(ch.29, c("loo", "waic"))
+
+loo(ch.52) # mass only : 0 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -92.9  7.2
+## p_loo         3.1  0.9
+## looic       185.8 14.4
+## ------
+## Monte Carlo SE of elpd_loo is 0.0.
+## 
+## All Pareto k estimates are good (k < 0.5).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.53) # genus only : 2 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -94.6  7.3
+## p_loo         6.4  1.9
+## looic       189.2 14.5
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     65    97.0%   2156      
+##  (0.5, 0.7]   (ok)        2     3.0%   294       
+##    (0.7, 1]   (bad)       0     0.0%   <NA>      
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## 
+## All Pareto k estimates are ok (k < 0.7).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.54) # mass and genus : 1 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -94.9  7.1
+## p_loo         6.5  1.8
+## looic       189.7 14.2
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     66    98.5%   812       
+##  (0.5, 0.7]   (ok)        1     1.5%   313       
+##    (0.7, 1]   (bad)       0     0.0%   <NA>      
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## 
+## All Pareto k estimates are ok (k < 0.7).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.29) # mass genus and phylo: 1 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -94.2  7.2
+## p_loo         9.8  2.2
+## looic       188.4 14.5
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     66    98.5%   812       
+##  (0.5, 0.7]   (ok)        1     1.5%   379       
+##    (0.7, 1]   (bad)       0     0.0%   <NA>      
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## 
+## All Pareto k estimates are ok (k < 0.7).
+## See help('pareto-k-diagnostic') for details.
+```
+
+Ok so three of them have outliers! Are they all three gonna be different? Is it gonna be that troublemaking Apomys again?
+
+
+```r
+tibble(k   = ch.53$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k))
+```
+
+```
+## # A tibble: 67 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.636    22 193526 Archboldomys_maximus 
+##  2 0.592    60 190968 Soricomys_leonardocoi
+##  3 0.413    47 189835 Rhynchomys_labo      
+##  4 0.366    14 216435 Apomys_sierrae       
+##  5 0.361    49 189839 Rhynchomys_labo      
+##  6 0.340    48 189836 Rhynchomys_labo      
+##  7 0.300    46 189834 Rhynchomys_labo      
+##  8 0.289    62 188313 Soricomys_montanus   
+##  9 0.227    23 193943 Archboldomys_maximus 
+## 10 0.223    26 221833 Chrotomys_mindorensis
+## # ... with 57 more rows
+```
+
+```r
+# 193526 Archboldomys maximus, K = 0.64 AND
+# 190968 Soricomys leonardocoi, K = 0.59
+
+tibble(k   = ch.54$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 193526 Archboldomys maximus, K = 0.52
+```
+
+```
+## # A tibble: 67 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.523    22 193526 Archboldomys_maximus 
+##  2 0.425    60 190968 Soricomys_leonardocoi
+##  3 0.409    21 193525 Archboldomys_maximus 
+##  4 0.368    46 189834 Rhynchomys_labo      
+##  5 0.344    41 188354 Chrotomys_whiteheadi 
+##  6 0.336    40 188352 Chrotomys_whiteheadi 
+##  7 0.316    14 216435 Apomys_sierrae       
+##  8 0.315    48 189836 Rhynchomys_labo      
+##  9 0.287    23 193943 Archboldomys_maximus 
+## 10 0.285    25 221831 Chrotomys_mindorensis
+## # ... with 57 more rows
+```
+
+```r
+tibble(k   = ch.29$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 193526 Archboldomys maximus, K = 0.55
+```
+
+```
+## # A tibble: 67 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.549    22 193526 Archboldomys_maximus 
+##  2 0.432    62 188313 Soricomys_montanus   
+##  3 0.424    60 190968 Soricomys_leonardocoi
+##  4 0.397    53 175554 Soricomys_kalinga    
+##  5 0.388     4 218313 Apomys_banahao       
+##  6 0.384    14 216435 Apomys_sierrae       
+##  7 0.383    26 221833 Chrotomys_mindorensis
+##  8 0.380    19 193523 Archboldomys_maximus 
+##  9 0.369    47 189835 Rhynchomys_labo      
+## 10 0.364    50 167305 Soricomys_kalinga    
+## # ... with 57 more rows
+```
+
+Some thoughts:
+
+1) 193526 Archboldomys maximus is the most influential specimen in all three versions of the model (actually also in all four of the models - I checked ch.52 also), but it doesn't have an excessively high Pareto K, especially in the models that include mass as a predictor. In looking at the specimen's TBA results, it has the lowest BV.TV value of any specimen in the sample (12% bone). It is not the smallest specimen of its species. The only other specimens that comes close to having such a low BV.TV are 190968 (Soricomys leonardocoi) and 188313 (S. montanus), both of which have 14% bone. I think the Archboldomys is the most outstanding partially because it differs dramatically from ALL its conspecifics (Tb.Sp = 0.047 versus all others 0.028 or less), whereas among Soricomys, there is a greater spread of values within each species. 
+2) Is this a result of some allometric effect where you lose trabeculae as you get really small? This is a suspicion I've had for a while. It's probably worth doing some allometric scaling investigations here - I haven't been paying attention to that particularly. According to Doube et al. 2011, larger animals have relatively larger trabeculae that are relatively further apart, and that there are fewer of them per unit volume. Their analysis includes shrews down to 3g in mass, so that definitely encompasses the size range of Soricomys and Archboldomys. I'll have to look more closely at their results though, because I don't know how densely they have sampled the 3g-30g range of body masses. Having looked at so many very small species with almost totally empty centra, I am eager to know if my suspicion is founded in biological fact. 
+
+Model comparisons:
+
+
