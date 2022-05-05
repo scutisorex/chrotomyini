@@ -1799,4 +1799,332 @@ Some thoughts:
 
 Model comparisons:
 
+```r
+tbsp_comp <- loo_compare(ch.52, ch.53, ch.54, ch.29, criterion = "waic") %>% 
+  print(simplify = F)
+```
 
+```
+##       elpd_diff se_diff elpd_waic se_elpd_waic p_waic se_p_waic waic  se_waic
+## ch.52   0.0       0.0   -92.9       7.2          3.1    0.9     185.8  14.4  
+## ch.29  -1.1       2.4   -94.0       7.2          9.6    2.1     188.0  14.4  
+## ch.53  -1.5       1.9   -94.4       7.2          6.3    1.8     188.8  14.4  
+## ch.54  -1.9       1.7   -94.8       7.1          6.4    1.7     189.5  14.2
+```
+
+```r
+# Convert to WAIC differences among models, including standard error term.
+cbind(waic_diff = tbsp_comp[, 1] * -2,
+      se        = tbsp_comp[, 2] * 2)
+```
+
+```
+##       waic_diff       se
+## ch.52  0.000000 0.000000
+## ch.29  2.203877 4.795751
+## ch.53  3.045581 3.825730
+## ch.54  3.734829 3.493159
+```
+
+```r
+tbsp_comp[, 7:8] %>% 
+  data.frame() %>% 
+  rownames_to_column("model_name") %>% 
+  mutate(model_name = fct_reorder(model_name, waic, .desc = T)) %>% 
+  ggplot(aes(x = waic, y = model_name, 
+             xmin = waic - se_waic, 
+             xmax = waic + se_waic)) +
+  geom_pointrange(shape = 21) +
+  labs(title = "WAIC comparison across Tb.Sp estimation models",
+       x = "WAIC", y = "model") +
+  theme(axis.ticks.y = element_blank())
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-39-1.png)<!-- -->
+
+They are all the same, for all intents and purposes. Does this mean that the addition of predictors/information in the different models gives you NO additional capacity to predict Tb.Sp? Would this change if I removed the most extreme outliers? It seems like that's maybe worth a shot. This is the only metric so far where I feel like removing the outliers is maybe justified, but I also think that they may indicate something biologically relevant. 
+
+Let's look at some more TBA metrics before I go excluding anything.  
+
+######################################
+#### Connectivity Density (Conn.D)####
+######################################
+
+A model without genus, mass as the only predictor:
+
+```r
+# Conn.D by mass
+ch.55 <- 
+  brm(data = d, 
+      family = gaussian,
+      cond_s ~ 1+mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.55")
+print(ch.55)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 1 + mass_s 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept    -0.01      0.09    -0.19     0.18 1.00     4066     2839
+## mass_s       -0.66      0.10    -0.86    -0.47 1.00     3815     2920
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.77      0.07     0.65     0.92 1.00     4287     3008
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+Pretty large error, and a strong-ish inverse correlation with mass. Plot:
+
+```r
+ch.55.pl <- fitted(ch.55,
+       newdata = nd) %>% 
+  data.frame() %>% 
+  bind_cols(nd) %>% 
+  
+  # plot
+  ggplot(aes(x = mass_s)) +
+  geom_smooth(aes(y = Estimate, ymin = Q2.5, ymax = Q97.5),
+              stat = "identity",
+              alpha = 1/5, size = 1, color = "black") +
+  geom_point(data = d, aes(y = cond_s, color = genus), size = 4)+
+  scale_color_manual(values = cols)+
+  labs(x = "Mass in grams (standardized)",
+       y = "connectivity density (standardized)")+
+  geom_text_repel(data = d %>% filter(specno %in% c("193526", "193523", "190968", "216435")),  
+                  aes(y = cond_s, label = specno), 
+                  size = 3,)
+ch.55.pl
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-41-1.png)<!-- -->
+
+In comparison to the Tb.Sp model, it has less error overall, but there is still a lot of spread around the mean estimate. One Archboldomys and one Apomys are very noticeably above the line this time. I went ahead and labeled them - note that the super high Archboldomys (193523) is not the same specimen that has the super high trabecular spacing (193526, also labeled). This makes sense - larger spaces means lower overall density. S. leonardocoi (190968) makes another appearance pretty far away from its congeners, but it does have one other specimen down there with it, so maybe it's not unreasonably low. 
+
+That Apomys sierrae (216435) is absolutely abnormal, based on its detachment from all the rest of the Apomys. Also it's HUGE (105g, all others in the species are 81-95g). I had previously flagged it just from how weird it looked qualitatively, and LRH and I discussed taking a look at it to see if it's really old or something. We have yet to do that. I'm gonna run these analyses with it included and see how much trouble it causes.
+
+Model permutations:
+
+```r
+# By genus only
+
+ch.56 <- 
+  brm(data = d, 
+      family = gaussian,
+      cond_s ~ 0 + genus,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.56")
+print(ch.56)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.29      0.19    -0.68     0.08 1.00     5509     3042
+## genusArchboldomys     0.24      0.31    -0.38     0.85 1.00     5336     2914
+## genusChrotomys       -0.54      0.18    -0.89    -0.18 1.00     5272     2725
+## genusRhynchomys      -0.51      0.30    -1.11     0.08 1.00     5120     3049
+## genusSoricomys        0.99      0.18     0.63     1.34 1.00     5721     2884
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.80      0.07     0.68     0.96 1.00     3851     2903
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+What the hell is Soricomys doing??? (...again)
+
+
+```r
+# By genus and mass
+ch.57 <- 
+  brm(data = d, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.57")
+print(ch.57)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus + mass_s 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.21      0.18    -0.55     0.14 1.00     3553     2453
+## genusArchboldomys    -0.14      0.33    -0.77     0.52 1.00     2543     2566
+## genusChrotomys        0.09      0.30    -0.49     0.65 1.00     1462     2582
+## genusRhynchomys       0.25      0.42    -0.59     1.05 1.00     1780     2513
+## genusSoricomys        0.08      0.39    -0.68     0.85 1.00     1531     2520
+## mass_s               -0.68      0.26    -1.18    -0.17 1.00     1275     2247
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.77      0.07     0.65     0.92 1.00     3058     2841
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+
+```r
+# By genus, mass, and phylogeny/intraspecific variance
+ch.58 <-
+  brm(data = d, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.58")
+
+print(ch.58)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus + mass_s + (1 | gr(phylo, cov = ch)) + (1 | taxon) 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~phylo (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.32      0.24     0.01     0.89 1.00     1527     1400
+## 
+## ~taxon (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.21      0.17     0.01     0.62 1.00     1847     1880
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.19      0.38    -0.89     0.62 1.00     3065     2330
+## genusArchboldomys    -0.11      0.48    -1.07     0.83 1.00     3399     2663
+## genusChrotomys        0.07      0.44    -0.79     0.94 1.00     2535     2633
+## genusRhynchomys       0.17      0.54    -0.92     1.22 1.00     2805     3036
+## genusSoricomys        0.10      0.55    -1.05     1.15 1.00     2696     2525
+## mass_s               -0.66      0.30    -1.28    -0.07 1.00     2477     3034
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.76      0.07     0.64     0.91 1.00     5323     2859
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+4-part plot:
+
+
+```r
+ch.56_halfeye <- ch.56 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Conn.D", y = "genus")+
+  ggtitle(label = "Conn.D by genus only")
+
+ch.57_halfeye <- ch.57 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+
+ch.58_halfeye <- ch.58 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>% 
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass/phylo/intrasp.")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+
+ch.55.pl.nokey <- ch.55.pl +
+  theme(legend.position = "none")
+ch.56_halfeye/ch.55.pl.nokey|ch.57_halfeye/ch.58_halfeye
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-45-1.png)<!-- -->
+
+Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash?
