@@ -15,9 +15,9 @@ pacman::p_load(install = F, "ape", "bayesplot","BiocManager", "brms", "broom", "
 
 Load up Chrotomyini trabecular bone architecture (TBA) data and standardize variables:
 ```{r}
-d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\04082022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
 
-d <- d[d$tribe=="chroto",c(1:2, 4:22)]
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
 
 d <- 
   d %>% 
@@ -31,7 +31,8 @@ d <-
          tbth_s = rethinking::standardize(tbth),
          tbsp_s = rethinking::standardize(tbsp),
          conn_s = rethinking::standardize(conn),
-         cond_s = rethinking::standardize(connd), 
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
          da_s = rethinking::standardize(da))
 
 # remove C. gonzalesi and R. isarogensis, singletons:
@@ -1096,4 +1097,6 @@ ch.55.pl.nokey <- ch.55.pl +
 ch.56_halfeye/ch.55.pl.nokey|ch.57_halfeye/ch.58_halfeye
 ```
 
-Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash?
+Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash? I seem to remember a paper where they did TBA analyses on pieces of trabecular bone that gradually decrease in size relative to the whole bone, and they found a point at which the estimate becomes unreliable because it reaches the scale where trabecular bone appears heterogeneous. This might be the one where they established the "cutoff" for connectivity, saying you can't reasonably analyze a piece of trabecular bone unless it has AT LEAST X many trabeculae in there. 
+
+This again suggests to me that I need to come up with some way of quantifying the heterogeneity of trabecular structure in these animals. I found a paper that did it with pixel intensity on representative slices. Amson's global compactness measure gets at this to some degree because it measures slice by slice, but I'm not interested in taking an average there because it loses all of the spatial resolution, which is what I'm interested in. 

@@ -12,9 +12,9 @@ output:
 Load up Chrotomyini trabecular bone architecture (TBA) data and standardize variables:
 
 ```r
-d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\04082022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
 
-d <- d[d$tribe=="chroto",c(1:2, 4:22)]
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
 
 d <- 
   d %>% 
@@ -28,7 +28,8 @@ d <-
          tbth_s = rethinking::standardize(tbth),
          tbsp_s = rethinking::standardize(tbsp),
          conn_s = rethinking::standardize(conn),
-         cond_s = rethinking::standardize(connd), 
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
          da_s = rethinking::standardize(da))
 
 # remove C. gonzalesi and R. isarogensis, singletons:
@@ -1875,12 +1876,12 @@ print(ch.55)
 ## 
 ## Population-Level Effects: 
 ##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## Intercept    -0.01      0.09    -0.19     0.18 1.00     4066     2839
-## mass_s       -0.66      0.10    -0.86    -0.47 1.00     3815     2920
+## Intercept    -0.00      0.09    -0.18     0.18 1.00     3308     3057
+## mass_s       -0.68      0.09    -0.85    -0.49 1.00     3736     2763
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sigma     0.77      0.07     0.65     0.92 1.00     4287     3008
+## sigma     0.76      0.07     0.64     0.90 1.00     3406     3039
 ## 
 ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 ## and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -1942,15 +1943,15 @@ print(ch.56)
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## genusApomys          -0.29      0.19    -0.68     0.08 1.00     5509     3042
-## genusArchboldomys     0.24      0.31    -0.38     0.85 1.00     5336     2914
-## genusChrotomys       -0.54      0.18    -0.89    -0.18 1.00     5272     2725
-## genusRhynchomys      -0.51      0.30    -1.11     0.08 1.00     5120     3049
-## genusSoricomys        0.99      0.18     0.63     1.34 1.00     5721     2884
+## genusApomys          -0.18      0.18    -0.54     0.18 1.00     5216     2949
+## genusArchboldomys     0.17      0.30    -0.42     0.74 1.00     6659     3452
+## genusChrotomys       -0.61      0.18    -0.96    -0.26 1.00     5200     2853
+## genusRhynchomys      -0.52      0.31    -1.14     0.10 1.00     5864     3579
+## genusSoricomys        1.00      0.18     0.63     1.36 1.00     5273     3050
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sigma     0.80      0.07     0.68     0.96 1.00     3851     2903
+## sigma     0.79      0.07     0.67     0.95 1.00     4761     2806
 ## 
 ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 ## and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -1983,16 +1984,16 @@ print(ch.57)
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## genusApomys          -0.21      0.18    -0.55     0.14 1.00     3553     2453
-## genusArchboldomys    -0.14      0.33    -0.77     0.52 1.00     2543     2566
-## genusChrotomys        0.09      0.30    -0.49     0.65 1.00     1462     2582
-## genusRhynchomys       0.25      0.42    -0.59     1.05 1.00     1780     2513
-## genusSoricomys        0.08      0.39    -0.68     0.85 1.00     1531     2520
-## mass_s               -0.68      0.26    -1.18    -0.17 1.00     1275     2247
+## genusApomys          -0.11      0.19    -0.46     0.25 1.00     3504     2687
+## genusArchboldomys    -0.20      0.34    -0.87     0.46 1.00     2779     2544
+## genusChrotomys       -0.02      0.29    -0.60     0.54 1.00     1663     2317
+## genusRhynchomys       0.18      0.41    -0.64     0.98 1.00     1868     2489
+## genusSoricomys        0.14      0.39    -0.62     0.91 1.00     1494     2003
+## mass_s               -0.64      0.27    -1.16    -0.11 1.00     1339     1724
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sigma     0.77      0.07     0.65     0.92 1.00     3058     2841
+## sigma     0.77      0.07     0.64     0.91 1.00     3094     2445
 ## 
 ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 ## and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -2025,6 +2026,12 @@ print(ch.58)
 ```
 
 ```
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta
+## above 0.98 may help. See http://mc-stan.org/misc/warnings.html#divergent-
+## transitions-after-warmup
+```
+
+```
 ##  Family: gaussian 
 ##   Links: mu = identity; sigma = identity 
 ## Formula: cond_s ~ 0 + genus + mass_s + (1 | gr(phylo, cov = ch)) + (1 | taxon) 
@@ -2035,24 +2042,24 @@ print(ch.58)
 ## Group-Level Effects: 
 ## ~phylo (Number of levels: 11) 
 ##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sd(Intercept)     0.32      0.24     0.01     0.89 1.00     1527     1400
+## sd(Intercept)     0.31      0.23     0.01     0.86 1.00     1639     2236
 ## 
 ## ~taxon (Number of levels: 11) 
 ##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sd(Intercept)     0.21      0.17     0.01     0.62 1.00     1847     1880
+## sd(Intercept)     0.20      0.16     0.01     0.59 1.00     1606     2084
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## genusApomys          -0.19      0.38    -0.89     0.62 1.00     3065     2330
-## genusArchboldomys    -0.11      0.48    -1.07     0.83 1.00     3399     2663
-## genusChrotomys        0.07      0.44    -0.79     0.94 1.00     2535     2633
-## genusRhynchomys       0.17      0.54    -0.92     1.22 1.00     2805     3036
-## genusSoricomys        0.10      0.55    -1.05     1.15 1.00     2696     2525
-## mass_s               -0.66      0.30    -1.28    -0.07 1.00     2477     3034
+## genusApomys          -0.09      0.36    -0.80     0.67 1.00     2857     2397
+## genusArchboldomys    -0.17      0.48    -1.10     0.85 1.00     3743     2712
+## genusChrotomys       -0.01      0.43    -0.88     0.89 1.00     2479     2733
+## genusRhynchomys       0.17      0.53    -0.90     1.22 1.00     3142     2831
+## genusSoricomys        0.12      0.50    -0.91     1.09 1.00     2754     3042
+## mass_s               -0.66      0.29    -1.24    -0.07 1.00     2576     2818
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-## sigma     0.76      0.07     0.64     0.91 1.00     5323     2859
+## sigma     0.76      0.07     0.64     0.91 1.00     5514     2400
 ## 
 ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 ## and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -2127,4 +2134,6 @@ ch.56_halfeye/ch.55.pl.nokey|ch.57_halfeye/ch.58_halfeye
 
 ![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-45-1.png)<!-- -->
 
-Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash?
+Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash? I seem to remember a paper where they did TBA analyses on pieces of trabecular bone that gradually decrease in size relative to the whole bone, and they found a point at which the estimate becomes unreliable because it reaches the scale where trabecular bone appears heterogeneous. This might be the one where they established the "cutoff" for connectivity, saying you can't reasonably analyze a piece of trabecular bone unless it has AT LEAST X many trabeculae in there. 
+
+This again suggests to me that I need to come up with some way of quantifying the heterogeneity of trabecular structure in these animals. I found a paper that did it with pixel intensity on representative slices. Amson's global compactness measure gets at this to some degree because it measures slice by slice, but I'm not interested in taking an average there because it loses all of the spatial resolution, which is what I'm interested in. 
