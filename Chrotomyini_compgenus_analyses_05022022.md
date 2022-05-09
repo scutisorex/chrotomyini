@@ -2137,3 +2137,219 @@ ch.56_halfeye/ch.55.pl.nokey|ch.57_halfeye/ch.58_halfeye
 Apart from the weird Apomys, it seems like the variance in Conn.D decreases with increasing body size. Is that just because we're getting a larger sample of bone in the larger animals, so the differences come out in the wash? I seem to remember a paper where they did TBA analyses on pieces of trabecular bone that gradually decrease in size relative to the whole bone, and they found a point at which the estimate becomes unreliable because it reaches the scale where trabecular bone appears heterogeneous. This might be the one where they established the "cutoff" for connectivity, saying you can't reasonably analyze a piece of trabecular bone unless it has AT LEAST X many trabeculae in there. 
 
 This again suggests to me that I need to come up with some way of quantifying the heterogeneity of trabecular structure in these animals. I found a paper that did it with pixel intensity on representative slices. Amson's global compactness measure gets at this to some degree because it measures slice by slice, but I'm not interested in taking an average there because it loses all of the spatial resolution, which is what I'm interested in. 
+
+I'm  mostly certain that there will be no significant differences if I subtract the probability distributions. I think the next step here is to consider the effect of A. sierrae 216435.
+
+Model comparison:
+
+```r
+ch.55 <- add_criterion(ch.55, c("loo", "waic"))
+ch.56 <- add_criterion(ch.56, c("loo", "waic"))
+ch.57 <- add_criterion(ch.57, c("loo", "waic"))
+ch.58 <- add_criterion(ch.58, c("loo", "waic"))
+
+loo(ch.55) # mass only : 0 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -78.1  8.9
+## p_loo         3.9  1.5
+## looic       156.2 17.9
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## All Pareto k estimates are good (k < 0.5).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.56) # genus only : 1 Pareto K > 0.5
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -82.5  8.1
+## p_loo         6.2  1.8
+## looic       165.0 16.2
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     66    98.5%   1043      
+##  (0.5, 0.7]   (ok)        1     1.5%   405       
+##    (0.7, 1]   (bad)       0     0.0%   <NA>      
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## 
+## All Pareto k estimates are ok (k < 0.7).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.57) # mass and genus : 1 Pareto K > 0.7
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -81.5 10.2
+## p_loo         8.0  3.1
+## looic       163.0 20.4
+## ------
+## Monte Carlo SE of elpd_loo is NA.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     66    98.5%   732       
+##  (0.5, 0.7]   (ok)        0     0.0%   <NA>      
+##    (0.7, 1]   (bad)       1     1.5%   14        
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+loo(ch.58) # mass genus and phylo: 1 Pareto K > 0.7
+```
+
+```
+## 
+## Computed from 4000 by 67 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -82.0  9.9
+## p_loo        10.2  3.3
+## looic       163.9 19.8
+## ------
+## Monte Carlo SE of elpd_loo is NA.
+## 
+## Pareto k diagnostic values:
+##                          Count Pct.    Min. n_eff
+## (-Inf, 0.5]   (good)     66    98.5%   1054      
+##  (0.5, 0.7]   (ok)        0     0.0%   <NA>      
+##    (0.7, 1]   (bad)       1     1.5%   83        
+##    (1, Inf)   (very bad)  0     0.0%   <NA>      
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+# All right who is it? I'm sure I already know. 
+tibble(k   = ch.57$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 216435 Apomys sierrae, K = 0.92, to the surprise of nobody.
+```
+
+```
+## # A tibble: 67 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.927    14 216435 Apomys_sierrae       
+##  2 0.498    19 193523 Archboldomys_maximus 
+##  3 0.364    22 193526 Archboldomys_maximus 
+##  4 0.321    58 190964 Soricomys_leonardocoi
+##  5 0.310    32 193720 Chrotomys_silaceus   
+##  6 0.246    23 193943 Archboldomys_maximus 
+##  7 0.239    51 167307 Soricomys_kalinga    
+##  8 0.237    62 188313 Soricomys_montanus   
+##  9 0.234    49 189839 Rhynchomys_labo      
+## 10 0.234    24 214320 Archboldomys_maximus 
+## # ... with 57 more rows
+```
+
+```r
+tibble(k   = ch.58$criteria$loo$diagnostics$pareto_k,
+       row = 1:67,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 216435 Apomys sierrae, K = 0.77.
+```
+
+```
+## # A tibble: 67 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.775    14 216435 Apomys_sierrae       
+##  2 0.476    19 193523 Archboldomys_maximus 
+##  3 0.420    58 190964 Soricomys_leonardocoi
+##  4 0.377    53 175554 Soricomys_kalinga    
+##  5 0.363    64 193515 Soricomys_montanus   
+##  6 0.350    25 221831 Chrotomys_mindorensis
+##  7 0.328    46 189834 Rhynchomys_labo      
+##  8 0.309    48 189836 Rhynchomys_labo      
+##  9 0.309    35 193731 Chrotomys_silaceus   
+## 10 0.308    62 188313 Soricomys_montanus   
+## # ... with 57 more rows
+```
+
+This suggests to me that removing that outlier is pretty much essential to understanding the pattern overall. 
+##########################################
+#### Conn.D without A. sierrae 216435 ####
+##########################################
+
+```r
+dc <- d[d$specno!="216435",]
+
+ch.59 <- 
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 1+mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.59")
+print(ch.59)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 1 + mass_s 
+##    Data: dc (Number of observations: 66) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## Intercept    -0.05      0.08    -0.21     0.12 1.00     3884     3271
+## mass_s       -0.70      0.08    -0.87    -0.53 1.00     3697     2790
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.68      0.06     0.57     0.81 1.00     3703     3014
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+ch.59.pl <- fitted(ch.59,
+       newdata = nd) %>% 
+  data.frame() %>% 
+  bind_cols(nd) %>% 
+  
+  # plot
+  ggplot(aes(x = mass_s)) +
+  geom_smooth(aes(y = Estimate, ymin = Q2.5, ymax = Q97.5),
+              stat = "identity",
+              alpha = 1/5, size = 1, color = "black") +
+  geom_point(data = dc, aes(y = cond_s, color = genus), size = 4)+
+  scale_color_manual(values = cols)+
+  labs(x = "Mass in grams (standardized)",
+       y = "connectivity density (standardized)")+
+  geom_text_repel(data = d %>% filter(specno %in% c("193526", "193523", "190968")),  
+                  aes(y = cond_s, label = specno), 
+                  size = 3,)
+ch.59.pl
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-47-1.png)<!-- -->
+
