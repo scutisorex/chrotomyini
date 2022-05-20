@@ -1158,9 +1158,86 @@ ch.59.pl <- fitted(ch.59,
   scale_color_manual(values = cols)+
   labs(x = "Mass in grams (standardized)",
        y = "connectivity density (standardized)")+
-  geom_text_repel(data = d %>% filter(specno %in% c("193526", "193523", "190968")),  
+  geom_text_repel(data = d %>% filter(specno %in% c("193525", "193523", "190968", "190977")),  
                   aes(y = cond_s, label = specno), 
                   size = 3,)
 ch.59.pl
+```
+
+How's it look?
+```{r}
+ch.59 <- add_criterion(ch.59, c("loo", "waic"))
+loo(ch.59)
+
+tibble(k   = ch.59$criteria$loo$diagnostics$pareto_k,
+       row = 1:66,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 216435 Apomys sierrae, K = 0.77.
+```
+
+Much better. However, this makes it so that if I want to compare directly across the models I have to re-run all of them without that specimen. Let's see how that affects the results. 
+```{r}
+# By genus only
+
+ch.60 <- 
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.60")
+print(ch.60)
+
+ch.61 <- 
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.57")
+print(ch.61)
+```
+
+Four-part plot:
+```{r}
+ch.60_halfeye <- ch.60 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Conn.D", y = "genus")+
+  ggtitle(label = "Conn.D by genus only")
+
+ch.61_halfeye <- ch.61 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
 ```
 
