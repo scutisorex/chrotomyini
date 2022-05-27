@@ -1189,6 +1189,7 @@ ch.60 <-
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.60")
 print(ch.60)
 
+# By genus and mass
 ch.61 <- 
   brm(data = dc, 
       family = gaussian,
@@ -1198,6 +1199,28 @@ ch.61 <-
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.57")
 print(ch.61)
+
+# By genus, mass, and phylogeny/intraspecific variance
+ch.62 <-
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.62")
+
+print(ch.62)
 ```
 
 Four-part plot:
@@ -1239,5 +1262,28 @@ ch.61_halfeye <- ch.61 %>%
   labs(x = "Conn.D", y = "genus")+
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
+
+ch.62_halfeye <- ch.62 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass/phylo")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+
+ch.59.pl.nokey <- ch.59.pl +
+  theme(legend.position = "none")
+ch.60_halfeye/ch.59.pl.nokey|ch.61_halfeye/ch.62_halfeye
 ```
 

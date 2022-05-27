@@ -2345,11 +2345,263 @@ ch.59.pl <- fitted(ch.59,
   scale_color_manual(values = cols)+
   labs(x = "Mass in grams (standardized)",
        y = "connectivity density (standardized)")+
-  geom_text_repel(data = d %>% filter(specno %in% c("193526", "193523", "190968")),  
+  geom_text_repel(data = d %>% filter(specno %in% c("193525", "193523", "190968", "190977")),  
                   aes(y = cond_s, label = specno), 
                   size = 3,)
 ch.59.pl
 ```
 
 ![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-47-1.png)<!-- -->
+
+How's it look?
+
+```r
+ch.59 <- add_criterion(ch.59, c("loo", "waic"))
+loo(ch.59)
+```
+
+```
+## 
+## Computed from 4000 by 66 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo    -69.3  6.8
+## p_loo         3.3  0.8
+## looic       138.6 13.6
+## ------
+## Monte Carlo SE of elpd_loo is 0.0.
+## 
+## All Pareto k estimates are good (k < 0.5).
+## See help('pareto-k-diagnostic') for details.
+```
+
+```r
+tibble(k   = ch.59$criteria$loo$diagnostics$pareto_k,
+       row = 1:66,
+       specimen = paste(d$specno[row], d$taxon[row])) %>% 
+  arrange(desc(k)) # 216435 Apomys sierrae, K = 0.77.
+```
+
+```
+## # A tibble: 66 x 3
+##        k   row specimen                    
+##    <dbl> <int> <chr>                       
+##  1 0.322    61 190977 Soricomys_leonardocoi
+##  2 0.315    21 193525 Archboldomys_maximus 
+##  3 0.293    52 167309 Soricomys_kalinga    
+##  4 0.221    57 190962 Soricomys_leonardocoi
+##  5 0.216    45 189833 Rhynchomys_labo      
+##  6 0.173    50 167305 Soricomys_kalinga    
+##  7 0.162    59 190965 Soricomys_leonardocoi
+##  8 0.157    34 193726 Chrotomys_silaceus   
+##  9 0.155     8 236309 Apomys_datae         
+## 10 0.124    66 193519 Soricomys_montanus   
+## # ... with 56 more rows
+```
+
+Much better. However, this makes it so that if I want to compare directly across the models I have to re-run all of them without that specimen. Let's see how that affects the results. 
+
+```r
+# By genus only
+
+ch.60 <- 
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.60")
+print(ch.60)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus 
+##    Data: dc (Number of observations: 66) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.33      0.17    -0.66     0.02 1.00     5013     3089
+## genusArchboldomys     0.17      0.30    -0.41     0.76 1.00     5637     2921
+## genusChrotomys       -0.61      0.17    -0.93    -0.28 1.00     6219     3484
+## genusRhynchomys      -0.53      0.29    -1.11     0.04 1.00     6368     3035
+## genusSoricomys        1.01      0.17     0.68     1.34 1.00     5799     2904
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.73      0.07     0.61     0.87 1.00     5587     3003
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+# By genus and mass
+ch.61 <- 
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.57")
+print(ch.61)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus + mass_s 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.11      0.19    -0.46     0.25 1.00     3504     2687
+## genusArchboldomys    -0.20      0.34    -0.87     0.46 1.00     2779     2544
+## genusChrotomys       -0.02      0.29    -0.60     0.54 1.00     1663     2317
+## genusRhynchomys       0.18      0.41    -0.64     0.98 1.00     1868     2489
+## genusSoricomys        0.14      0.39    -0.62     0.91 1.00     1494     2003
+## mass_s               -0.64      0.27    -1.16    -0.11 1.00     1339     1724
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.77      0.07     0.64     0.91 1.00     3094     2445
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
+# By genus, mass, and phylogeny/intraspecific variance
+ch.62 <-
+  brm(data = dc, 
+      family = gaussian,
+      cond_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.62")
+
+print(ch.62)
+```
+
+```
+##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: cond_s ~ 0 + genus + mass_s + (1 | gr(phylo, cov = ch)) + (1 | taxon) 
+##    Data: dc (Number of observations: 66) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Group-Level Effects: 
+## ~phylo (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.29      0.23     0.01     0.87 1.00     1539     2242
+## 
+## ~taxon (Number of levels: 11) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.18      0.15     0.01     0.58 1.00     1880     1777
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genusApomys          -0.24      0.34    -0.91     0.48 1.00     2240     2031
+## genusArchboldomys    -0.29      0.46    -1.20     0.67 1.00     2916     2212
+## genusChrotomys        0.15      0.40    -0.69     0.94 1.00     2913     2568
+## genusRhynchomys       0.35      0.52    -0.71     1.33 1.00     3362     2636
+## genusSoricomys       -0.11      0.50    -1.09     0.88 1.00     2969     2867
+## mass_s               -0.84      0.28    -1.39    -0.30 1.00     3000     2782
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.66      0.06     0.55     0.79 1.00     5837     3001
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+Four-part plot:
+
+```r
+ch.60_halfeye <- ch.60 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Conn.D", y = "genus")+
+  ggtitle(label = "Conn.D by genus only")
+
+ch.61_halfeye <- ch.61 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+
+ch.62_halfeye <- ch.62 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by genus/mass/phylo")+
+  labs(x = "Conn.D", y = "genus")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+
+ch.59.pl.nokey <- ch.59.pl +
+  theme(legend.position = "none")
+ch.60_halfeye/ch.59.pl.nokey|ch.61_halfeye/ch.62_halfeye
+```
+
+![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
 
