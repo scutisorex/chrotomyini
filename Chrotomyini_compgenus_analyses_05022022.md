@@ -2605,3 +2605,4 @@ ch.60_halfeye/ch.59.pl.nokey|ch.61_halfeye/ch.62_halfeye
 
 ![](Chrotomyini_compgenus_analyses_05022022_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
 
+Well. It looks like Rhynchomys is maybe the interesting guy here. A higher Conn.D than anyone else (but not significantly so). Could this have something to do with the variety of forces on the veretbral column of ricochetal animals? Look into this. Since it seems like degree of anisotropy is not very reliable when you get down to this small of a bone sample, connectivity density could help in understanding the overall structure.

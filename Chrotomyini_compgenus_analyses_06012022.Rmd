@@ -99,7 +99,7 @@ A scatterplot of thTe above model, with genera color-coded (the same color code 
 range(d$mass_s)
 nd <- tibble(mass_s = seq(from = -2, to = 1.75, length.out = 67))
 
-fitted(ch.36,
+fitted(ch.70,
        newdata = nd) %>% 
   data.frame() %>% 
   bind_cols(nd) %>% 
@@ -116,46 +116,73 @@ fitted(ch.36,
        y = "bone volume fraction (standardized)") 
 ```
 
-From this plot, you can really see that genus is closely linked to body mass. You can also see that there is definitely some correlation between mass and BV.TV but the relationship has a lot of error. You can also detect this from the model parameters: mass_s (the influence of mass, a.k.a slope, listed under "Population-level effects") = 0.56, with CIs 0.36-0.76, and sigma = 0.83. 
+From this plot, you can really see that genus is closely linked to body mass. You can also see that there is definitely some correlation between mass and BV.TV but the relationship has a lot of error. You can also detect this from the model parameters: mass_s (the influence of mass, a.k.a slope, listed under "Population-level effects") = 0.55, with CIs 0.34-0.76, and sigma = 0.80. 
 
 Now a series of models that estimate a separate intercept (= estimate of mean BV.TV) for each genus, which here is a proxy for substrate use. I printed each model for quick inspection, and at the end of all the models, there is a plot including all four of them.
 
 ```{r}
 # By genus only
-ch.24 <- 
+ch.71 <- 
   brm(data = d, 
-      family = gaussian,
+      family = student,
       bvtv_s ~ 0 + genus,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(gamma(2, 0.1), class = nu),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.71")
+print(ch.71)
+
+# What about with a fixed value for nu?
+ch.71b <- 
+  brm(data = d, 
+      family = student,
+      bf(bvtv_s ~ 0 + genus, nu = 2),
       prior = c(prior(normal(0, 1), class = b),
                 prior(exponential(1), class = sigma)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.24")
-print(ch.24)
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.71b")
+print(ch.71b)
+
+
 ```
 
 
 ```{r}
 # By genus and mass
-ch.25 <- 
+ch.72 <- 
   brm(data = d, 
-      family = gaussian,
+      family = student,
       bvtv_s ~ 0 + genus + mass_s,
+      prior = c(prior(normal(0, 1), class = b),
+                prior(gamma(2, 0.1), class = nu),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.72")
+print(ch.72)
+
+# with fixed nu
+ch.72b <- 
+  brm(data = d, 
+      family = student,
+      bf(bvtv_s ~ 0 + genus + mass_s, nu = 2),
       prior = c(prior(normal(0, 1), class = b),
                 prior(exponential(1), class = sigma)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.25")
-print(ch.25)
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.72b")
+print(ch.72b)
 ```
 
 
 ```{r}
 # By genus and phylogeny/intraspecific variance, no mass
-ch.44 <- 
+ch.73 <- 
   brm(data = d, 
-      family = gaussian,
+      family = student,
       bvtv_s ~ 0 + genus + (1|gr(phylo, cov = ch)) + (1|taxon),
       control = list(adapt_delta = 0.89), #inserted to decrease the number of divergent transitions here
       prior = c(
+        prior(gamma(2, 0.1), class = nu),
         prior(normal(0, 1), class = b, coef = genusApomys),
         prior(normal(0, 1), class = b, coef = genusArchboldomys),
         prior(normal(0, 1), class = b, coef = genusChrotomys),
@@ -166,17 +193,39 @@ ch.44 <-
         ),
       data2 = list(ch = ch),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.44")
-print(ch.44)
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.73")
+print(ch.73)
 ```
 
 
 ```{r}
 # By genus, mass, and phylogeny/intraspecific variance
-ch.26 <-
+ch.74 <-
   brm(data = d, 
-      family = gaussian,
+      family = student,
       bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74")
+print(ch.74)
+
+# with fixed nu:
+ch.74b <-
+  brm(data = d, 
+      family = student,
+      bf(bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon), nu = 2),
       control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
       prior = c(
         prior(normal(0, 1), class = b, coef = genusApomys),
@@ -190,14 +239,47 @@ ch.26 <-
         ),
       data2 = list(ch = ch),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.26")
-print(ch.26)
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74b")
+print(ch.74b)
+
+# with estimated nu, more robust gamma(4,1) as demonstrated by Kurz - a slightly more restrictive prior but not as much as the fixed one:
+
+ch.74c <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(4, 1), class = nu),
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74c")
+print(ch.74c)
+
+b_estimates <-
+  tibble(model = c("ch.74", "ch.74b", "ch.74c")) %>% 
+  mutate(fit = map(model, get)) %>% 
+  mutate(posterior_summary = map(fit, ~posterior_summary(.) %>% 
+                                   data.frame() %>% 
+                                   rownames_to_column("term"))) %>% 
+  unnest(posterior_summary) %>% 
+  select(-fit) %>% 
+  arrange(term)
 ```
 
 A four-part plot including all of the models:
 
 ```{r}
-ch.24_halfeye <- ch.24 %>%
+ch.71_halfeye <- ch.71 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
   ggplot(aes(y = .variable, x = .value)) +
@@ -216,7 +298,7 @@ ch.24_halfeye <- ch.24 %>%
   labs(x = "BV.TV", y = "genus")+
   ggtitle(label = "BV.TV by genus only")
 
-ch.25_halfeye <- ch.25 %>%
+ch.72b_halfeye <- ch.72b %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
   ggplot(aes(y = .variable, x = .value)) +
@@ -235,7 +317,7 @@ ch.25_halfeye <- ch.25 %>%
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
 
-ch.44_halfeye <- ch.44 %>%
+ch.73_halfeye <- ch.73 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
   ggplot(aes(y = .variable, x = .value)) +
@@ -254,7 +336,7 @@ ch.44_halfeye <- ch.44 %>%
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
 
-ch.26_halfeye <- ch.26 %>%
+ch.74_halfeye <- ch.74 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
   ggplot(aes(y = .variable, x = .value)) +
@@ -273,7 +355,9 @@ ch.26_halfeye <- ch.26 %>%
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
 
-ch.24_halfeye/ch.44_halfeye|ch.25_halfeye/ch.26_halfeye
+ch.71_halfeye/ch.73_halfeye|ch.72_halfeye/ch.74_halfeye
+
+ch.72_halfeye|ch.72b_halfeye
 ```
 
 Takeaways from this set of plots:
@@ -282,7 +366,7 @@ Takeaways from this set of plots:
 
 Here are the difference distributions between pairs of genera for the model including only genus and mass as predictors (upper right in the preceding plot):
 ```{r}
-ch.25 %>%
+ch.72 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   compare_levels(.value, by = .variable) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
@@ -302,7 +386,7 @@ This brings me to my second takeaway from the 4-part plot.
 2) The genus/mass model doesn't include the effects of phylogenetic correlation or intraspecific variance. When we estimate BV.TV (with genus and mass as predictors) with a phylogenetic multilevel model, and consider intraspecific variance as well (lower right in the 4-part plot above), the difference distributions look like this:
 
 ```{r}
-ch.26 %>%
+ch.74c %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   compare_levels(.value, by = .variable) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
@@ -324,11 +408,11 @@ So how strong is the influence of phylogeny on BV.TV? The model outputs a value 
 Here's a calculation of lambda for ch.26, the model that includes genus, mass, phylogeny, and intraspecific variance:
 ```{r}
 hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sd_taxon__Intercept^2 + sigma^2) = 0"
-h.bvtv <- hypothesis(ch.26, hyp, class = NULL)
+h.bvtv <- hypothesis(ch.74, hyp, class = NULL)
 h.bvtv
 ```
 
-The estimate of lambda here is 0.29. I would say that's medium-low? But why should we trust a point estimate here (especially when the upper 95% CI is 0.74)? We can look at lambda as a probability distribution instead. This will show us where the majority of the probability density actually falls.
+The estimate of lambda here is 0.33. I would say that's medium-low? But why should we trust a point estimate here (especially when the upper 95% CI is 0.79)? We can look at lambda as a probability distribution instead. This will show us where the majority of the probability density actually falls.
 
 ```{r}
 ph.bvtv.pl <- ggplot() +
@@ -346,45 +430,57 @@ What the hell does this mean about the actual influence of phylogeny on BV.TV? I
 Ok departing from the discussion of the plots above: I'm gonna do some model comparison to see which model is best at predicting out-of-sample (which is the "best fit" for the data). I'm going to use two methods: the Widely Applicable Information Criterion (WAIC) and Leave-One-Out cross-validation (LOO).
 
 ```{r}
-ch.36 <-  add_criterion(ch.36, c("waic", "loo")) # mass only
-ch.24 <-  add_criterion(ch.24, c("waic", "loo")) # genus only 
-ch.25 <-  add_criterion(ch.25, c("waic", "loo")) # genus and mass
-ch.44 <-  add_criterion(ch.44, c("waic", "loo")) # genus and phylogeny
-ch.26 <-  add_criterion(ch.26, c("waic", "loo")) # genus mass phylogeny
+ch.71 <-  add_criterion(ch.71, c("waic", "loo")) # mass only
+ch.72 <-  add_criterion(ch.72, c("waic", "loo")) # genus only 
+ch.72b <-  add_criterion(ch.72b, c("waic", "loo")) # genus only 
+ch.73 <-  add_criterion(ch.73, c("waic", "loo")) # genus and mass
+ch.74 <-  add_criterion(ch.74, c("waic", "loo")) # genus and phylogeny
+ch.74b <-  add_criterion(ch.74b, c("waic", "loo")) # genus mass phylogeny
+ch.74c <-  add_criterion(ch.74c, c("waic", "loo")) # genus mass phylogeny
 
-loo(ch.36) # mass only : 0 Pareto K > 0.5
-loo(ch.24) # genus only : 0 Pareto K > 0.5
-loo(ch.25) # genus and mass : 0 Pareto K > 0.5
-loo(ch.44) # genus and phylogeny : 1 Pareto K > 0.5
-loo(ch.26) # genus mass phylogeny : 1 Pareto K > 0.5
+loo(ch.70) # mass only : 0 Pareto K > 0.5
+loo(ch.71) # genus only : 0 Pareto K > 0.5
+loo(ch.72) # genus and mass : 0 Pareto K > 0.5
+loo(ch.73) # genus and phylogeny : 1 Pareto K > 0.5
+loo(ch.74) # genus mass phylogeny : 0 Pareto K > 0.5
 ```
 
-This analysis (LOO) can tell you, among other things, if there are specimens that are having a strong effect on the model fit. It does this by leaving one specimen out at a time (hence the name) and seeing how well the model can predict the value for that left-out specimen when it is not a part of the model. Specimens that are highly influential have a high Pareto K value. In two of the models here (ch.44 and ch.26, the phylogenetic models), one specimen has a relatively high Pareto K. Let's see if it's the same specimen in both.
-
+This analysis (LOO) can tell you, among other things, if there are specimens that are having a strong effect on the model fit. It does this by leaving one specimen out at a time (hence the name) and seeing how well the model can predict the value for that left-out specimen when it is not a part of the model. Specimens that are highly influential have a high Pareto K value. In only one of the models here (ch.73, the phylogenetic model without mass), one specimen has a relatively high Pareto K. 
 ```{r}
-tibble(k   = ch.44$criteria$loo$diagnostics$pareto_k,
+tibble(k   = ch.73$criteria$loo$diagnostics$pareto_k,
        row = 1:67,
        specimen = paste(d$specno[row], d$taxon[row])) %>% 
-  arrange(desc(k)) # 190968 Soricomys leonardocoi, K = 0.59
+  arrange(desc(k)) # 193526 Archboldomys maximus, K = 0.504.
 
-tibble(k   = ch.26$criteria$loo$diagnostics$pareto_k,
-       row = 1:67,
-       specimen = paste(d$specno[row], d$taxon[row])) %>% 
-  arrange(desc(k)) # 216462 Apomys sierrae, K = 0.69
 ```
-
-Why are these specimens potentially having such a strong effect?
-
-1) FMNH 216462, Apomys sierrae: This animal has an anomalously low bone volume fraction compared to all other individuals in its species (17% bone versus all other specimens 29-37% bone). It has the shortest head and body length at 135 mm, compared to ~140-150 for all other specimens. It is also unusual in that it only has five lumbar vertebrae rather than 6. I still analyzed the third lumbar position for it, but it may represent a veeery slightly different functional position in the lumbar column. However - looking at the specimen just now in Dragonfly, all the vertebrae kind of look like that. So It might just be a weirdo.
-
-2) FMNH 190968, Soricomys leonardocoi: This animal also has anomalously low bone volume fraction for its species (14% bone as opposed to all others 19-22% bone). However, this is in an analysis (ch.44) that does not account for body mass. 190968 weighs 35 grams, and the average mass of the species is 32 grams, so it's slightly heavier than average and has a lower BV.TV. In the phylogenetic model that has mass as a predictor (ch.26), its Pareto K is below the "good" threshold of 0.5 (K = 0.41) - it doesn't have a super strong effect on that model fit. So incorporating mass apparently allows the model to not be surprised about this specimen's BV.TV. I'm not sure I have an adequate explanation for how that is happening.
-
-Should I remove these guys, at least the Apomys? I don't know if that's necessary. It seems like it represents true variation in the population, and I'm loath do get rid of it because of that. I could try using a Student distribution for the posterior probability distribution, which would result in a model that is less surprised by outliers, but I haven't decided if I think the problem is extreme enough for that to be necessary.
+It's Archboldomys, 193526. But its Pareto K is 0.504. I am not worried about it.
 
 Now I'm going to compare across models to see which is the best at predicting BV.TV, and by how much. This won't give any information about the causality of the variables involved, but it can tell how big of a difference the inclusion or exclusion of a variable makes in the predictive accuracy of the model.
 
 ```{r}
-bvtv_comp <- loo_compare(ch.36, ch.24, ch.25, ch.44, ch.26, criterion = "waic")
+# Add in the old models that use a gaussian distribution:
+
+ch.26 <-
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)) + (1|taxon),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.26")
+
+bvtv_comp <- loo_compare(ch.71, ch.72, ch.72b, ch.73, ch.74, ch.74b, ch.74c, ch.26, criterion = "waic")
+
 
 # Convert to WAIC differences among models, including standard error term.
 cbind(waic_diff = bvtv_comp[, 1] * -2,
@@ -403,13 +499,7 @@ bvtv_comp[, 7:8] %>%
   theme(axis.ticks.y = element_blank())
 ```
 
-So in this comparison, the WAIC (= Widely Applicable Information Criterion) indicates that ch.26, the phylogenetic model (+ intraspecific variance) that includes genus and mass, is the best predictive model, but not by much - its standard error (horizontal line on the plot) overlaps that of ch.44 (phylo only) and ch.25 (genus and mass). 
-
-Based on what I know about trabecular bone morphology, and what I've seen so far re: correlation of body mass with TBA metrics, it doesn't make sense to exclude mass from the model. Body mass has an effect on skeletal structure to varying degrees, depending on the metric of interest. so even though the phylogenetic model that does not include mass as a predictor (ch.44) doesn't perform that much worse than the model including mass (ch.26), I'm not going to extensively consider models that don't take mass into account. I will, however, compare across metrics to see the difference in the influence of mass on the TBA metrics that I'm examining. This is part of the overall goal of the study: to figure out a little more about what the various trabecular bone metrics are being influenced by/are associated with, in addition to the hypothesized biomechanical function of trabecular bone variation.
-
-I think I'll keep doing comparisons with the no-phylogeny type models for now (ch.25 and ch.36, above) because I think that comparison is relevant to understanding HOW phylogenetic structure affects results. I know people always are saying, don't include both phylogenetic and non-phylogenetic analyses in your results, but I think it's useful. Thoughts on this point would be appreciated. 
-
-So, I'm going to try and explain some of my thoughts about what these results mean biomechanically and ecologically. But first I need to look at the other trabecular bone metrics here. 
+So in this comparison, the WAIC (= Widely Applicable Information Criterion) indicates that ch.26, the gaussian phylogenetic model (+ intraspecific variance) that includes genus and mass, is essentially just as good for prediction as the three models with Student-T distributions. However, BV.TV didn't really have very many intense outliers to begin with. Let's look at the other ones. for simplicity, I'm going to stick with 
 
 ######################################
 #### Trabecular Thickness (Tb.Th) ####
@@ -419,7 +509,7 @@ A model without genus, mass as the only predictor:
 
 ```{r}
 # Tb.Th by mass
-ch.40 <- 
+ch.75 <- 
   brm(data = d, 
       family = gaussian,
       tbth_s ~ 1+mass_s,
