@@ -1,0 +1,156 @@
+---
+title: "Chrotomyini ancestral state reconstruction 06032022"
+author: "S.M. Smith"
+date: "6/3/2022"
+output: 
+  html_document: 
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(install = F, "ape", "bayesplot","BiocManager", "brms", "broom", "dagitty", "devtools", "flextable", "ggdark", "ggmcmc", "ggrepel", "gtools", "lattice","loo", "patchwork", "phytools","rcartocolor", "Rcpp", "remotes", "rstan", "StanHeaders", "statebins", "tidybayes", "viridis", "viridisLite", "pacman")
+```
+
+Load up Chrotomyini trabecular bone architecture (TBA) data and standardize variables:
+```{r}
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
+
+d <- 
+  d %>% 
+  mutate(bvtv = as.numeric(bvtv))
+
+d <- 
+  d %>%
+  mutate(mass_s = rethinking::standardize(log10(mass_g)),
+         elev_s = rethinking::standardize(elev), 
+         bvtv_s = rethinking::standardize(bvtv),
+         tbth_s = rethinking::standardize(tbth),
+         tbsp_s = rethinking::standardize(tbsp),
+         conn_s = rethinking::standardize(conn),
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
+         da_s = rethinking::standardize(da))
+
+# remove C. gonzalesi and R. isarogensis, singletons:
+d <- 
+  d %>% 
+  filter(taxon!="Chrotomys_gonzalesi") %>% 
+  filter(taxon!="Rhynchomys_isarogensis")
+
+# Make categorical vars into factors
+d <- 
+  d %>%
+  mutate(loco = factor(loco), 
+         hab_simp = factor(hab_simp),
+         genus = factor(genus))
+
+# Specify colors for plots:
+cols = c("#86acca","#ab685b", "#3370a3", "#1f314c","#5a9fa8")
+```
+
+Load in phylogeny: 
+REMEMBER: A <- ape::vcv.phylo(phylo), add corr = T if your tree is NOT SCALED TO 1. 
+```{r}
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+```
+
+Ancestral state reconstruction as demonstrated here:
+http://www.phytools.org/eqg2015/asr.html
+
+
+```{r}
+# Species means
+dmean <- d %>%
+  group_by(taxon) %>% 
+  summarize(mass_s = mean(mass_s),
+            bvtv_s = mean(bvtv_s),
+            tbth_s = mean(tbth_s),
+            tbsp_s = mean(tbsp_s),
+            cond_s = mean(cond_s))
+
+```
+
+```{r}
+mass_ace <- dmean$mass_s
+names(mass_ace) <- dmean$taxon
+
+fit<-fastAnc(ch.tre,mass_ace,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,mass_ace,plot=FALSE)
+plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+
+```
+
+```{r}
+bvtv_ace <- dmean$bvtv_s
+names(bvtv_ace) <- dmean$taxon
+
+fit<-fastAnc(ch.tre,bvtv_ace,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,bvtv_ace,plot=FALSE)
+bvtv_raw_plot <- plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+
+```
+```{r}
+tbth_ace <- dmean$tbth_s
+names(tbth_ace) <- dmean$taxon
+
+fit<-fastAnc(ch.tre,tbth_ace,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,tbth_ace,plot=FALSE)
+plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+```
+
+```{r}
+tbsp_ace <- dmean$tbsp_s
+names(tbsp_ace) <- dmean$taxon
+
+fit<-fastAnc(ch.tre,tbsp_ace,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,tbsp_ace,plot=FALSE)
+plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+```
+
+```{r}
+cond_ace <- dmean$cond_s
+names(cond_ace) <- dmean$taxon
+
+fit<-fastAnc(ch.tre,cond_ace,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,cond_ace,plot=FALSE)
+plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+```
+
+It's clear that all of these are basically reporting body mass to some degree or another. Can we use the estimates from our regressions that include mass to map onto these and see what they look like?
+```{r}
+# BVTV estimates by species, mass as only other predictor
+ch.75.4 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.75.4")
+
+bvtv_mu.0 <- ch.75.4 %>%    
+  fixef() %>% 
+  as.data.frame() %>% 
+  select(matches("Estimate")) %>% 
+  slice(1:11,)
+
+bvtv_mu <- as.numeric(bvtv_mu.0$Estimate)
+names(bvtv_mu) <- (gsub("taxon", "", rownames(bvtv_mu.0)))
+
+
+fit<-fastAnc(ch.tre,bvtv_mu,vars=TRUE,CI=TRUE)
+obj<-contMap(ch.tre,bvtv_mu,plot=FALSE)
+plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
+    fsize=c(0.7,0.9))
+
+```
+

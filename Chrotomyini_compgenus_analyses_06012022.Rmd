@@ -221,6 +221,65 @@ ch.74 <-
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74")
 print(ch.74)
 
+ch.74.1 <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74.1")
+print(ch.74.1)
+
+ch.74.2 <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + genus + mass_s + (1|taxon),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b, coef = genusApomys),
+        prior(normal(0, 1), class = b, coef = genusArchboldomys),
+        prior(normal(0, 1), class = b, coef = genusChrotomys),
+        prior(normal(0, 1), class = b, coef = genusRhynchomys),
+        prior(normal(0, 1), class = b, coef = genusSoricomys),
+        prior(normal(0, 1), class = b, coef = mass_s),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74.2")
+print(ch.74.2)
+
+
+ch.74.3 <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.85), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74.3")
+print(ch.74.3)
+
 # with fixed nu:
 ch.74b <-
   brm(data = d, 
@@ -336,7 +395,7 @@ ch.73_halfeye <- ch.73 %>%
   theme(legend.position = "none", 
         plot.title = element_text(size = 9))
 
-ch.74_halfeye <- ch.74 %>%
+ch.74.2_halfeye <- ch.74.2 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
   ggplot(aes(y = .variable, x = .value)) +
@@ -357,7 +416,7 @@ ch.74_halfeye <- ch.74 %>%
 
 ch.71_halfeye/ch.73_halfeye|ch.72_halfeye/ch.74_halfeye
 
-ch.72_halfeye|ch.72b_halfeye
+ch.74_halfeye|ch.74.1_halfeye|ch.74.2_halfeye
 ```
 
 Takeaways from this set of plots:
@@ -1382,3 +1441,8 @@ ch.60_halfeye/ch.59.pl.nokey|ch.61_halfeye/ch.62_halfeye
 ```
 
 Well. It looks like Rhynchomys is maybe the interesting guy here. A higher Conn.D than anyone else (but not significantly so). Could this have something to do with the variety of forces on the veretbral column of ricochetal animals? Look into this. Since it seems like degree of anisotropy is not very reliable when you get down to this small of a bone sample, connectivity density could help in understanding the overall structure.
+
+```{r}
+
+```
+
