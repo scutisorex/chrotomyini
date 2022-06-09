@@ -290,3 +290,8 @@ p2cond <- ggtree(tree, aes(color=trait),
 
 p1cond|p2cond
 ```
+
+
+
+
+
