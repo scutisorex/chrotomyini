@@ -1,0 +1,143 @@
+---
+title: "Mini phylo signal 06092022"
+author: "S.M. Smith"
+date: '2022-06-09'
+output: 
+  html_document: 
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(install = F, "ape", "bayesplot","BiocManager", "brms", "broom", "dagitty", "devtools", "flextable", "ggdark", "ggmcmc", "ggrepel", "ggtree", "gtools", "lattice","loo", "patchwork", "phytools","rcartocolor", "Rcpp", "remotes", "rstan", "StanHeaders", "statebins", "tidybayes", "viridis", "viridisLite", "pacman")
+```
+
+Load up Chrotomyini trabecular bone architecture (TBA) data and standardize variables:
+
+```{r}
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
+
+d <- 
+  d %>% 
+  mutate(bvtv = as.numeric(bvtv))
+
+d <- 
+  d %>%
+  mutate(mass_s = rethinking::standardize(log10(mass_g)),
+         elev_s = rethinking::standardize(elev), 
+         bvtv_s = rethinking::standardize(bvtv),
+         tbth_s = rethinking::standardize(tbth),
+         tbsp_s = rethinking::standardize(tbsp),
+         conn_s = rethinking::standardize(conn),
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
+         da_s = rethinking::standardize(da))
+
+# remove C. gonzalesi and R. isarogensis, singletons:
+d <- 
+  d %>% 
+  filter(taxon!="Chrotomys_gonzalesi") %>% 
+  filter(taxon!="Rhynchomys_isarogensis")
+
+# Make categorical vars into factors
+d <- 
+  d %>%
+  mutate(loco = factor(loco), 
+         hab_simp = factor(hab_simp),
+         genus = factor(genus))
+
+# Specify colors for plots:
+cols = c("#86acca","#ab685b", "#3370a3", "#1f314c","#5a9fa8")
+```
+
+Load in phylogeny: 
+REMEMBER: A <- ape::vcv.phylo(phylo), add corr = T if your tree is NOT SCALED TO 1. 
+
+```{r}
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+
+```
+
+Estimate lambda: all four trabecular bone variables. All are by taxon (species-level) and include mass and phylo structure terms. Eg:
+
+```{r}
+ch.74.3 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74.3")
+print(ch.74.3)
+```
+
+Calculating lambda:
+
+
+```{r}
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"
+
+#BV.TV
+h.bvtv <- hypothesis(ch.74.3, hyp, class = NULL)
+
+#Tb.Th
+ch.76 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.76")
+h.tbth <- hypothesis(ch.76, hyp, class = NULL)
+
+#Tb.Sp
+ch.77 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.77")
+h.tbsp <- hypothesis(ch.77, hyp, class = NULL)
+
+#Conn.d
+ch.78 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.78")
+h.cond <- hypothesis(ch.78, hyp, class = NULL)
+
+
+bvtv.stpl <- ggplot() +
+  geom_density(aes(x = h.bvtv$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: bone volume fraction")
+
+tbth.stpl <- ggplot() +
+  geom_density(aes(x = h.tbth$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular thickness")
+
+tbsp.stpl <- ggplot() +
+  geom_density(aes(x = h.tbsp$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular separation")
+
+cond.stpl <- ggplot() +
+  geom_density(aes(x = h.cond$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: connectivity density")
+bvtv.stpl/tbsp.stpl|tbth.stpl/cond.stpl
+```
+
+All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th is the most correlated with mass, so I checked on what the phylogenetic signal is in mass by itself:
+
+```{r}
+ch.80 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.80")
+h.mass <- hypothesis(ch.80, hyp, class = NULL)
+mass.stpl <- ggplot() +
+  geom_density(aes(x = h.mass$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: mass")
+mass.stpl
+```
+
+Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric?
