@@ -201,6 +201,7 @@ mass.stpl
 
 ![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
+<<<<<<< HEAD
 Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric? What if we calculate lambda on tbth without including mass? If that's the issue, I would expect that without mass as a predictor there is a very high phylo signal.
 
 
@@ -319,3 +320,6 @@ bvnomass.stpl
 ![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 Ok so maybe that's the cause here. When you add mass to the Tb.Th model, the error structures are too similar to be able to tell if the error is from phylo or from mass, and there's very little other information there.  
+=======
+Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric?
+>>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058

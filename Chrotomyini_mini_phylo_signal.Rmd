@@ -126,7 +126,11 @@ cond.stpl <- ggplot() +
 bvtv.stpl/tbsp.stpl|tbth.stpl/cond.stpl
 ```
 
+<<<<<<< HEAD
 All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th has the tightest correlation with mass, so I checked on what the phylogenetic signal is in mass by itself:
+=======
+All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th is the most correlated with mass, so I checked on what the phylogenetic signal is in mass by itself:
+>>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058
 
 ```{r}
 ch.80 <- 
@@ -140,6 +144,7 @@ mass.stpl <- ggplot() +
 mass.stpl
 ```
 
+<<<<<<< HEAD
 Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric? What if we calculate lambda on tbth without including mass? If that's the issue, I would expect that without mass as a predictor there is a very high phylo signal.
 
 ```{r}
@@ -252,3 +257,6 @@ d <- d +
 a/b/c/d
 
 ```
+=======
+Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric?
+>>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058
