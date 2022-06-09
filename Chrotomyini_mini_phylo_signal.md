@@ -187,6 +187,7 @@ bvtv.stpl/tbsp.stpl|tbth.stpl/cond.stpl
 All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th is the most correlated with mass, so I checked on what the phylogenetic signal is in mass by itself:
 
 
+
 ```r
 ch.80 <- 
   brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.80")
@@ -201,7 +202,7 @@ mass.stpl
 
 ![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
-<<<<<<< HEAD
+
 Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric? What if we calculate lambda on tbth without including mass? If that's the issue, I would expect that without mass as a predictor there is a very high phylo signal.
 
 
@@ -320,6 +321,189 @@ bvnomass.stpl
 ![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 Ok so maybe that's the cause here. When you add mass to the Tb.Th model, the error structures are too similar to be able to tell if the error is from phylo or from mass, and there's very little other information there.  
-=======
-Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric?
->>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058
+
+Compare with conn.d, which has a negative correlation with mass, but the fit isn't great:
+
+
+```r
+ch.80.4 <-
+  brm(data = d, 
+      family = student,
+      cond_s ~ 0 + taxon + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.80.4")
+h.cdnomass <- hypothesis(ch.80.4, hyp, class = NULL)
+cdnomass.stpl <- ggplot() +
+  geom_density(aes(x = h.cdnomass$samples$H1), fill = "orange", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: connectivity density, no-mass model")
+cdnomass.stpl
+```
+
+![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+So even though the slope of mass vs. conn.d is big, there is a lot more variance in the relationship. What about some pearson correlations?
+
+```r
+cor.test(d$mass_s, d$bvtv_s) # cor = 0.57, big CIs (0.39-0.72)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  d$mass_s and d$bvtv_s
+## t = 5.7076, df = 65, p-value = 3.061e-07
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.3920011 0.7183142
+## sample estimates:
+##       cor 
+## 0.5778027
+```
+
+```r
+cor.test(d$mass_s, d$tbth_s) # cor = 0.93, v small CIs (0.89-0.95)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  d$mass_s and d$tbth_s
+## t = 20.848, df = 65, p-value < 2.2e-16
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.8924173 0.9582183
+## sample estimates:
+##       cor 
+## 0.9326889
+```
+
+```r
+cor.test(d$mass_s, d$tbsp_s) # cor = 0.39, big CIs (0.16-0.57)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  d$mass_s and d$tbsp_s
+## t = 3.4257, df = 65, p-value = 0.001067
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.1664986 0.5770671
+## sample estimates:
+##       cor 
+## 0.3910667
+```
+
+```r
+cor.test(d$mass_s, d$cond_s) # cor = -0.68, medium CIs (-0.79 - -0.52)
+```
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  d$mass_s and d$cond_s
+## t = -7.493, df = 65, p-value = 2.322e-10
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.7915419 -0.5266918
+## sample estimates:
+##       cor 
+## -0.680772
+```
+
+
+Can I do all the mass influence terms from the previous models?
+
+
+```r
+a <- mcmc_plot(ch.74.3, pars = "^b_mass")
+```
+
+```
+## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
+```
+
+```r
+b <- mcmc_plot(ch.76, pars = "^b_mass")
+```
+
+```
+## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
+```
+
+```r
+c <- mcmc_plot(ch.77, pars = "^b_mass")
+```
+
+```
+## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
+```
+
+```r
+d <- mcmc_plot(ch.78, pars = "^b_mass")
+```
+
+```
+## Warning: Argument 'pars' is deprecated. Please use 'variable' instead.
+```
+
+```r
+a <- a +
+  xlim(-2,1.5)
+```
+
+```
+## Scale for 'x' is already present. Adding another scale for 'x', which will
+## replace the existing scale.
+```
+
+```r
+b <- b +
+  xlim(-2,1.5)
+```
+
+```
+## Scale for 'x' is already present. Adding another scale for 'x', which will
+## replace the existing scale.
+```
+
+```r
+c <- c +
+  xlim(-2,1.5)
+```
+
+```
+## Scale for 'x' is already present. Adding another scale for 'x', which will
+## replace the existing scale.
+```
+
+```r
+d <- d +
+  xlim(-2,1.5)
+```
+
+```
+## Scale for 'x' is already present. Adding another scale for 'x', which will
+## replace the existing scale.
+```
+
+```r
+a/b/c/d
+```
+
+![](Chrotomyini_mini_phylo_signal_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+

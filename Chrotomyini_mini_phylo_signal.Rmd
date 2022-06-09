@@ -126,11 +126,8 @@ cond.stpl <- ggplot() +
 bvtv.stpl/tbsp.stpl|tbth.stpl/cond.stpl
 ```
 
-<<<<<<< HEAD
-All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th has the tightest correlation with mass, so I checked on what the phylogenetic signal is in mass by itself:
-=======
 All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th is the most correlated with mass, so I checked on what the phylogenetic signal is in mass by itself:
->>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058
+
 
 ```{r}
 ch.80 <- 
@@ -144,7 +141,7 @@ mass.stpl <- ggplot() +
 mass.stpl
 ```
 
-<<<<<<< HEAD
+
 Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric? What if we calculate lambda on tbth without including mass? If that's the issue, I would expect that without mass as a predictor there is a very high phylo signal.
 
 ```{r}
@@ -201,6 +198,7 @@ bvnomass.stpl
 Ok so maybe that's the cause here. When you add mass to the Tb.Th model, the error structures are too similar to be able to tell if the error is from phylo or from mass, and there's very little other information there.  
 
 Compare with conn.d, which has a negative correlation with mass, but the fit isn't great:
+
 ```{r}
 ch.80.4 <-
   brm(data = d, 
@@ -239,6 +237,7 @@ cor.test(d$mass_s, d$cond_s) # cor = -0.68, medium CIs (-0.79 - -0.52)
 
 
 Can I do all the mass influence terms from the previous models?
+
 ```{r}
 a <- mcmc_plot(ch.74.3, pars = "^b_mass")
 b <- mcmc_plot(ch.76, pars = "^b_mass")
@@ -257,6 +256,4 @@ d <- d +
 a/b/c/d
 
 ```
-=======
-Pretty high peak near 1. Is the phylo signal reflective of the effect that mass has on the metric?
->>>>>>> c5d964e60e3fa84163d941edc219ce458ed72058
+
