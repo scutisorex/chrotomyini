@@ -512,7 +512,11 @@ ggplot(aes(x=bvtv, y = mass_g), data = d)+
 
 library(smatr)
 g <- sma(bvtv~mass_g, data = d, slope.test = 0, log = "xy", robust = T)
+<<<<<<< HEAD
 print(g) # slope = 0.315, p = 2.22e-16: positive allometry (slope is > 0). It's right around what the slope would be for isometry in a linear measurement, which is interesting, but there's no reason for it to be that because it is a dimensionless ratio. Bone Volume(mm^3)/Total volume (mm^3): the units cancel out. Right?
+=======
+print(g)
+>>>>>>> 3f9d1358ce7501d9837239127a18d8f012bc0d87
 plot(g)
 ```
 
@@ -523,12 +527,18 @@ ggplot(aes(x=tbth, y = mass_g), data = d)+
   scale_y_log10()+
   stat_smooth(method = lm)
 
+<<<<<<< HEAD
 g2 <- sma(tbth~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
 print(g2) # slope = 0.328, p = 0.65: isometry (slope is not different from 1/3).  This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+=======
+g2 <- sma(tbth~mass_g, data = d, slope.test = 1, log = "xy", robust = T)
+print(g2)
+>>>>>>> 3f9d1358ce7501d9837239127a18d8f012bc0d87
 plot(g2)
 ```
 
 ```{r}
+<<<<<<< HEAD
 ggplot(aes(x=mass_g, y = tbsp), data = d)+
   geom_point() +
   scale_x_log10()+
@@ -553,3 +563,16 @@ print(g4) #slope = -1, p = 0.99: Isometry (slope not diff from -1)
 plot(g4)
 ```
 
+=======
+ggplot(aes(x=tbsp, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+
+g3 <- sma(tbsp~mass_g, data = d, slope.test = 1, log = "xy", robust = T)
+print(g3)
+plot(g3)
+```
+
+>>>>>>> 3f9d1358ce7501d9837239127a18d8f012bc0d87
