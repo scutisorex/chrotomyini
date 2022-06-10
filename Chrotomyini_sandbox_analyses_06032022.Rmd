@@ -439,3 +439,117 @@ mcmc_plot(ch.78.4, pars = "^b_")
 ch.78 <- add_criterion(ch.78, c("loo", "waic"))
 ```
 
+How about some PCAs? Just real quick.
+
+```{r}
+d_pc <- d %>% 
+  select(c("taxon", "specno","genus", (ends_with("_s")))) %>% 
+  select(!c("elev_s", "da_s", "conn_s")) %>% 
+  column_to_rownames("specno")
+pc_s <- prcomp(d_pc[,3:7])
+
+pc12 <- autoplot(pc_s, x = 1, y = 2, data = d_pc, colour = "genus", size = 3, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000",scale = 0)
+
+pc12species <- autoplot(pc_s, x = 1, y = 2, data = d_pc,  colour = "taxon", size = 3, loadings.label = T, loadings = T, shape = "genus", scale = 0)
+
+pc32 <- autoplot(pc_s, x = 3, y = 2, data = d_pc, colour = "genus", size = 3, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0)
+
+pc12|pc32
+
+```
+
+Can I plot JUST the Chrotomys guys?
+
+```{r}
+pcchrot <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Chrotomys")
+
+pcchplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcchrot, size = 3)
+
+pcchplot
+```
+
+May as well do ones for Apomys and Soricomys. 
+Apomys:
+```{r}
+pcap <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Apomys")
+
+pcapplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcap, size = 3)
+
+pcapplot
+```
+
+Soricomys:
+```{r}
+pcsor <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Soricomys")
+
+pcsorplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcsor, size = 3)
+
+pcsorplot
+```
+
+How about some allometry in case someone asks?
+```{r}
+ggplot(aes(x=bvtv, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+
+library(smatr)
+g <- sma(bvtv~mass_g, data = d, slope.test = 0, log = "xy", robust = T)
+print(g) # slope = 0.315, p = 2.22e-16: positive allometry (slope is > 0). It's right around what the slope would be for isometry in a linear measurement, which is interesting, but there's no reason for it to be that because it is a dimensionless ratio. Bone Volume(mm^3)/Total volume (mm^3): the units cancel out. Right?
+plot(g)
+```
+
+```{r}
+ggplot(aes(x=tbth, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+
+g2 <- sma(tbth~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g2) # slope = 0.328, p = 0.65: isometry (slope is not different from 1/3).  This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+plot(g2)
+```
+
+```{r}
+ggplot(aes(x=mass_g, y = tbsp), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  geom_abline(slope = 0.271, intercept = -2.02)
+
+g3 <- sma(tbsp~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g3) # slope = 0.271, p = 0.051... Isometry? Right on the damn edge. If it's negative allometry (slope is less than 1/3 is the test), it's very slight. This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+plot(g3)
+```
+
+```{r}
+ggplot(aes(x=connd, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  #stat_smooth(method = lm)+
+  geom_abline(slope = -1, intercept = 5.931)
+
+g4 <- sma(connd~mass_g, data = d, slope.test = -1, log = "xy", robust = T) # isometric slope -1 because it's connectivity per unit volume (1/mm^3). This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses -3).
+print(g4) #slope = -1, p = 0.99: Isometry (slope not diff from -1)
+plot(g4)
+```
+
