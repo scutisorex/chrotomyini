@@ -1,0 +1,55 @@
+---
+title: "Chrotomyini brms holding tank"
+author: "S.M. Smith"
+date: "5/3/2022"
+output: html_document
+---
+
+In WAIC diagnostics, each specimen has a "penalty term", p_WAIC, that lowers the total WAIC when it's super high. High p_WAIC indicates that the specimen is forcing the model to be overfit, and an overfit model is less good at 
+```{r}
+tibble(pareto_k = ch.26$criteria$loo$diagnostics$pareto_k,
+       p_waic   = ch.26$criteria$waic$pointwise[, "p_waic"],
+       specno      = pull(d, specno)) %>%
+  ggplot(aes(x = pareto_k, y = p_waic)) +
+  geom_vline(xintercept = .5, linetype = 2, color = "black", alpha = 1/2) +
+  geom_point() +
+  geom_text(data = . %>% filter(p_waic > 0.5),
+            aes(x = pareto_k - 0.03, label = specno),
+            hjust = 1) +
+  labs(subtitle = "Gaussian model (b5.3)") +
+  theme(legend.position = "none")
+```
+
+```{r}
+
+```{r}
+# BV.TV with only phylogenetic correlation structure:
+ch.48 <- 
+  brm(data = d, 
+      family = gaussian,
+      bvtv_s ~ 1 + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.89), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\Chrotomyini_brms\\fits\\ch.48")
+print(ch.48)
+# NB! This model is primarily for comparing with other models - if you consider phylogenetic covariance structure only, does it allow you to predict bv.tv better than, or equally as well as, when you include mass/genus? I don't know that there's a good way to plot this. 
+```
+
+
+```{r}
+
+p.36 <- 
+  ggplot(d, aes(x=mass_s, y = bvtv_s, color = genus)) + 
+  geom_point(pch = 16, cex = 4) +
+  scale_color_manual(values = cols)
+p.36
+
+```
+
+```
+

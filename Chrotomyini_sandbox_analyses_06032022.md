@@ -235,14 +235,14 @@ loo_compare(ch.75, ch.74, ch.74.1, ch.74.2, ch.74.3, ch.70, ch.71, ch.71b)%>%
 
 ```
 ##         elpd_diff se_diff elpd_loo se_elpd_loo p_loo se_p_loo looic se_looic
-## ch.74.1   0.0       0.0   -73.5      6.8        10.6   1.6    147.0  13.5   
-## ch.74    -0.2       0.4   -73.7      6.8        11.2   1.7    147.4  13.6   
-## ch.74.2  -0.3       0.3   -73.8      6.7        11.2   1.6    147.7  13.5   
-## ch.74.3  -0.5       1.2   -74.0      7.0        12.0   1.8    147.9  13.9   
-## ch.75    -2.8       2.9   -76.3      7.3        12.9   1.2    152.6  14.7   
-## ch.70   -11.1       5.0   -84.6      5.0         2.9   0.4    169.1  10.0   
-## ch.71   -12.4       4.9   -85.9      5.0         4.9   0.6    171.9  10.0   
-## ch.71b  -19.3       5.4   -92.8      5.8         7.2   0.5    185.7  11.7
+## ch.74     0.0       0.0   -73.7      6.8        11.2   1.7    147.4  13.6   
+## ch.74.1  -0.1       0.4   -73.8      6.8        10.8   1.7    147.5  13.6   
+## ch.74.2  -0.2       0.2   -73.8      6.7        11.2   1.6    147.7  13.5   
+## ch.74.3  -0.3       0.8   -74.0      7.0        12.0   1.8    147.9  13.9   
+## ch.75    -2.6       2.8   -76.3      7.3        12.9   1.2    152.6  14.7   
+## ch.70   -10.9       5.1   -84.6      5.0         2.9   0.4    169.1  10.0   
+## ch.71   -12.2       5.1   -85.9      5.0         4.9   0.6    171.9  10.0   
+## ch.71b  -19.2       5.5   -92.8      5.8         7.2   0.5    185.7  11.7
 ```
 
 Try some more species things: 
@@ -885,18 +885,7 @@ mcmc_plot(ch.75.4, pars = "^b_")
 
 ```r
 ch.75.4 <- add_criterion(ch.75.4, c("loo", "waic"))
-```
 
-```
-## Warning: 
-## 10 (14.9%) p_waic estimates greater than 0.4. We recommend trying loo instead.
-```
-
-```
-## Automatically saving the model object in 'G:\My Drive\Philippine rodents\chrotomyini\fits\ch.75.4.rds'
-```
-
-```r
 # by species tbth no phy
 ch.76.4 <-
   brm(data = d, 
@@ -972,18 +961,7 @@ mcmc_plot(ch.76.4, pars = "^b_")
 
 ```r
 ch.76.4 <- add_criterion(ch.76.4, c("loo", "waic"))
-```
 
-```
-## Warning: 
-## 9 (13.4%) p_waic estimates greater than 0.4. We recommend trying loo instead.
-```
-
-```
-## Automatically saving the model object in 'G:\My Drive\Philippine rodents\chrotomyini\fits\ch.76.4.rds'
-```
-
-```r
 # by species tbsp no phy
 ch.77.4 <-
   brm(data = d, 
@@ -1059,18 +1037,7 @@ mcmc_plot(ch.77.4, pars = "^b_")
 
 ```r
 ch.77.4 <- add_criterion(ch.77.4, c("loo", "waic"))
-```
 
-```
-## Warning: 
-## 8 (11.9%) p_waic estimates greater than 0.4. We recommend trying loo instead.
-```
-
-```
-## Automatically saving the model object in 'G:\My Drive\Philippine rodents\chrotomyini\fits\ch.77.4.rds'
-```
-
-```r
 # by species cond no phy
 ch.78.4 <-
   brm(data = d, 
@@ -1151,4 +1118,300 @@ mcmc_plot(ch.78.4, pars = "^b_")
 ```r
 ch.78 <- add_criterion(ch.78, c("loo", "waic"))
 ```
+
+How about some PCAs? Just real quick.
+
+
+```r
+d_pc <- d %>% 
+  select(c("taxon", "specno","genus", (ends_with("_s")))) %>% 
+  select(!c("elev_s", "da_s", "conn_s")) %>% 
+  column_to_rownames("specno")
+pc_s <- prcomp(d_pc[,3:7])
+
+pc12 <- autoplot(pc_s, x = 1, y = 2, data = d_pc, colour = "genus", size = 3, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000",scale = 0)
+
+pc12species <- autoplot(pc_s, x = 1, y = 2, data = d_pc,  colour = "taxon", size = 3, loadings.label = T, loadings = T, shape = "genus", scale = 0)
+
+pc32 <- autoplot(pc_s, x = 3, y = 2, data = d_pc, colour = "genus", size = 3, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0)
+
+pc12|pc32
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+
+Can I plot JUST the Chrotomys guys?
+
+
+```r
+pcchrot <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Chrotomys")
+
+pcchplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcchrot, size = 3)
+
+pcchplot
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+May as well do ones for Apomys and Soricomys. 
+Apomys:
+
+```r
+pcap <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Apomys")
+
+pcapplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcap, size = 3)
+
+pcapplot
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+
+Soricomys:
+
+```r
+pcsor <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon) %>% 
+  filter(genus=="Soricomys")
+
+pcsorplot <- autoplot(pc_s, x = 1, y = 2, data = d_pc, shape = F, label = F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon), data = pcsor, size = 3)
+
+pcsorplot
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
+How about some allometry in case someone asks?
+
+```r
+ggplot(aes(x=bvtv, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+```
+
+```
+## `geom_smooth()` using formula 'y ~ x'
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+```r
+library(smatr)
+```
+
+```
+## 
+## Attaching package: 'smatr'
+```
+
+```
+## The following object is masked from 'package:brms':
+## 
+##     ma
+```
+
+```r
+g <- sma(bvtv~mass_g, data = d, slope.test = 0, log = "xy", robust = T)
+
+print(g) # slope = 0.315, p = 2.22e-16: positive allometry (slope is > 0). It's right around what the slope would be for isometry in a linear measurement, which is interesting, but there's no reason for it to be that because it is a dimensionless ratio. Bone Volume(mm^3)/Total volume (mm^3): the units cancel out. Right?
+```
+
+```
+## Call: sma(formula = bvtv ~ mass_g, data = d, log = "xy", slope.test = 0, 
+##     robust = T) 
+## 
+## Fit using Standardized Major Axis 
+## 
+## These variables were log-transformed before fitting: xy 
+## 
+## Confidence intervals (CI) are at 95%
+## 
+## ------------------------------------------------------------
+## Coefficients:
+##             elevation     slope
+## estimate    -1.184860 0.3153760
+## lower limit -1.303616 0.2588522
+## upper limit -1.066104 0.3842426
+## 
+## H0 : variables uncorrelated
+## R-squared : 0.3174043 
+## P-value : 6.9236e-07 
+## 
+## ------------------------------------------------------------
+## H0 : slope not different from 0 
+## Test statistic : r= 1 with 65 degrees of freedom under H0
+## P-value : < 2.22e-16
+```
+
+```r
+plot(g)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-13-2.png)<!-- -->
+
+
+```r
+ggplot(aes(x=tbth, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+```
+
+```
+## `geom_smooth()` using formula 'y ~ x'
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+
+```r
+g2 <- sma(tbth~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g2) # slope = 0.328, p = 0.65: isometry (slope is not different from 1/3).  This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+```
+
+```
+## Call: sma(formula = tbth ~ mass_g, data = d, log = "xy", slope.test = 1/3, 
+##     robust = T) 
+## 
+## Fit using Standardized Major Axis 
+## 
+## These variables were log-transformed before fitting: xy 
+## 
+## Confidence intervals (CI) are at 95%
+## 
+## ------------------------------------------------------------
+## Coefficients:
+##             elevation     slope
+## estimate    -2.638962 0.3277853
+## lower limit -2.685338 0.3040050
+## upper limit -2.592587 0.3534258
+## 
+## H0 : variables uncorrelated
+## R-squared : 0.9013391 
+## P-value : < 2.22e-16 
+## 
+## ------------------------------------------------------------
+## H0 : slope not different from 0.3333333 
+## Test statistic : r= -0.05501 with 65 degrees of freedom under H0
+## P-value : 0.65803
+```
+
+```r
+plot(g2)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-14-2.png)<!-- -->
+
+
+```r
+ggplot(aes(x=mass_g, y = tbsp), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  geom_abline(slope = 0.271, intercept = -2.02)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+
+```r
+g3 <- sma(tbsp~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g3) # slope = 0.271, p = 0.051... Isometry? Right on the damn edge. If it's negative allometry (slope is less than 1/3 is the test), it's very slight. This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+```
+
+```
+## Call: sma(formula = tbsp ~ mass_g, data = d, log = "xy", slope.test = 1/3, 
+##     robust = T) 
+## 
+## Fit using Standardized Major Axis 
+## 
+## These variables were log-transformed before fitting: xy 
+## 
+## Confidence intervals (CI) are at 95%
+## 
+## ------------------------------------------------------------
+## Coefficients:
+##             elevation     slope
+## estimate    -2.015510 0.2709343
+## lower limit -2.123233 0.2199276
+## upper limit -1.907786 0.3337708
+## 
+## H0 : variables uncorrelated
+## R-squared : 0.1735632 
+## P-value : 0.00045353 
+## 
+## ------------------------------------------------------------
+## H0 : slope not different from 0.3333333 
+## Test statistic : r= -0.2367 with 65 degrees of freedom under H0
+## P-value : 0.051436
+```
+
+```r
+plot(g3)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-15-2.png)<!-- -->
+
+
+```r
+ggplot(aes(x=connd, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  #stat_smooth(method = lm)+
+  geom_abline(slope = -1, intercept = 5.931)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
+```r
+g4 <- sma(connd~mass_g, data = d, slope.test = -1, log = "xy", robust = T) # isometric slope -1 because it's connectivity per unit volume (1/mm^3). This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses -3).
+print(g4) #slope = -1, p = 0.99: Isometry (slope not diff from -1)
+```
+
+```
+## Call: sma(formula = connd ~ mass_g, data = d, log = "xy", slope.test = -1, 
+##     robust = T) 
+## 
+## Fit using Standardized Major Axis 
+## 
+## These variables were log-transformed before fitting: xy 
+## 
+## Confidence intervals (CI) are at 95%
+## 
+## ------------------------------------------------------------
+## Coefficients:
+##             elevation      slope
+## estimate     5.931699 -1.0002817
+## lower limit  5.619226 -1.1795909
+## upper limit  6.244173 -0.8482292
+## 
+## H0 : variables uncorrelated
+## R-squared : 0.4587377 
+## P-value : 3.1005e-10 
+## 
+## ------------------------------------------------------------
+## H0 : slope not different from -1 
+## Test statistic : r= 0.0004212 with 65 degrees of freedom under H0
+## P-value : 0.9973
+```
+
+```r
+plot(g4)
+```
+
+![](Chrotomyini_sandbox_analyses_06032022_files/figure-html/unnamed-chunk-16-2.png)<!-- -->
 

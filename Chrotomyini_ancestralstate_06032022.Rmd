@@ -118,6 +118,7 @@ p1bvtv <- ggtree(tree, aes(color=trait),
 # With size as predictor
 ch.75.4 <- 
   brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.75.4")
+print(ch.75.4)
 
 bvtv_mu.0 <- ch.75.4 %>%    
   fixef() %>% 

@@ -119,7 +119,56 @@ p1bvtv <- ggtree(tree, aes(color=trait),
 # With size as predictor
 ch.75.4 <- 
   brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.75.4")
+print(ch.75.4)
+```
 
+```
+##  Family: student 
+##   Links: mu = identity; sigma = identity; nu = identity 
+## Formula: bvtv_s ~ 0 + taxon + mass_s 
+##    Data: d (Number of observations: 67) 
+##   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup draws = 4000
+## 
+## Population-Level Effects: 
+##                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## taxonApomys_banahao            0.23      0.27    -0.30     0.76 1.00     4161
+## taxonApomys_datae             -0.34      0.26    -0.84     0.19 1.00     3903
+## taxonApomys_sierrae            0.48      0.29    -0.12     1.04 1.00     2633
+## taxonArchboldomys_maximus     -0.45      0.30    -1.04     0.16 1.00     2337
+## taxonChrotomys_mindorensis     0.45      0.40    -0.31     1.22 1.00     1458
+## taxonChrotomys_silaceus       -0.62      0.26    -1.14    -0.11 1.00     2228
+## taxonChrotomys_whiteheadi      0.53      0.36    -0.15     1.25 1.00     1668
+## taxonRhynchomys_labo          -0.98      0.37    -1.70    -0.26 1.00     1446
+## taxonSoricomys_kalinga         0.61      0.41    -0.18     1.41 1.00     1338
+## taxonSoricomys_leonardocoi    -0.19      0.37    -0.92     0.52 1.01     1477
+## taxonSoricomys_montanus        0.39      0.44    -0.46     1.27 1.00     1366
+## mass_s                         0.67      0.24     0.19     1.13 1.01     1041
+##                            Tail_ESS
+## taxonApomys_banahao            2852
+## taxonApomys_datae              2542
+## taxonApomys_sierrae            2773
+## taxonArchboldomys_maximus      2570
+## taxonChrotomys_mindorensis     2252
+## taxonChrotomys_silaceus        2698
+## taxonChrotomys_whiteheadi      2342
+## taxonRhynchomys_labo           2039
+## taxonSoricomys_kalinga         2143
+## taxonSoricomys_leonardocoi     2537
+## taxonSoricomys_montanus        2274
+## mass_s                         1667
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     0.61      0.08     0.45     0.77 1.00     2221     1664
+## nu       18.69     13.04     3.36    51.72 1.00     2324     1746
+## 
+## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+```r
 bvtv_mu.0 <- ch.75.4 %>%    
   fixef() %>% 
   as.data.frame() %>% 
@@ -302,3 +351,8 @@ p1cond|p2cond
 ```
 
 ![](Chrotomyini_ancestralstate_06032022_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+
+
+
+
