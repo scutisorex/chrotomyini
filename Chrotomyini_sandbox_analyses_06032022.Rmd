@@ -456,6 +456,18 @@ pc32 <- autoplot(pc_s, x = 3, y = 2, data = d_pc, colour = "genus", size = 3, lo
 
 pc12|pc32
 
+pcall <- pc_s$x %>% 
+  as.data.frame() %>% 
+  mutate(genus = d_pc$genus,
+         taxon = d_pc$taxon)
+
+pccolsplot <- autoplot(mapping = aes(lwd = 10), pc_s, x = 1, y = 2, data = d_pc, shape = F, label =  F, loadings.label = T, loadings = T, loadings.colour = "#000000", loadings.label.colour = "#000000", scale = 0) +
+  geom_point(aes(PC1, y=PC2, color = taxon),  data = pcall, size = 8)+
+  scale_color_manual(values = cols2)
+pccolsplot
+
+
+
 ```
 
 Can I plot JUST the Chrotomys guys?

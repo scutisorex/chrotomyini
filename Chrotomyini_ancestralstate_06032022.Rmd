@@ -89,6 +89,21 @@ obj<-contMap(ch.tre,mass_ace,plot=FALSE)
 plot(obj,legend=0.7*max(nodeHeights(ch.tre)),
     fsize=c(0.7,0.9))
 
+td <- data.frame(node = nodeid(ch.tre, names(mass_ace)),
+               trait = mass_ace)
+nd <- data.frame(node = names(fit$ace), trait = fit$ace)
+d <- rbind(td, nd)
+d$node <- as.numeric(d$node)
+tree <- full_join(ch.tre, d, by = 'node')
+p1mass <- ggtree(tree,ladderize = FALSE,  size=3.8) +
+    geom_tree(aes(color=trait), continuous = 'colour', size=3) +
+    scale_color_gradientn(colours=c("#ecd156", "white", "#fc2187")) +
+    geom_tiplab(size = 3, hjust=-0.3) + 
+    theme(legend.position = "none") +
+    xlim(0, 12)+
+    theme(legend.position = c(0.05, .85))+
+    labs(color = "mass")
+
 ```
 
 ########################################

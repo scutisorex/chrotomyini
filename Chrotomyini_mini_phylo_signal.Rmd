@@ -101,13 +101,13 @@ h.cond <- hypothesis(ch.78, hyp, class = NULL)
 
 
 bvtv.stpl <- ggplot() +
-  geom_density(aes(x = h.bvtv$samples$H1), fill = "orange", alpha = 0.5) +
+  geom_density(aes(x = h.bvtv$samples$H1), fill = "#66116a", alpha = 0.5) +
   theme_bw() +
   xlim(0,1) +
   labs(y = "density", x = "lambda: bone volume fraction")
 
 tbth.stpl <- ggplot() +
-  geom_density(aes(x = h.tbth$samples$H1), fill = "orange", alpha = 0.5) +
+  geom_density(aes(x = h.tbth$samples$H1), fill = "#9f9ad2", alpha = 0.5) +
   theme_bw() +
   xlim(0,1) +
   labs(y = "density", x = "lambda: trabecular thickness")
@@ -119,11 +119,11 @@ tbsp.stpl <- ggplot() +
   labs(y = "density", x = "lambda: trabecular separation")
 
 cond.stpl <- ggplot() +
-  geom_density(aes(x = h.cond$samples$H1), fill = "orange", alpha = 0.5) +
+  geom_density(aes(x = h.cond$samples$H1), fill = "grey", alpha = 0.5) +
   theme_bw() +
   xlim(0,1) +
   labs(y = "density", x = "lambda: connectivity density")
-bvtv.stpl/tbsp.stpl|tbth.stpl/cond.stpl
+bvtv.stpl/cond.stpl|tbth.stpl/tbsp.stpl
 ```
 
 All have peak density at low values for lambda except Tb.Th, which is pretty confused. Tb.Th is the most correlated with mass, so I checked on what the phylogenetic signal is in mass by itself:
@@ -134,7 +134,7 @@ ch.80 <-
   brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.80")
 h.mass <- hypothesis(ch.80, hyp, class = NULL)
 mass.stpl <- ggplot() +
-  geom_density(aes(x = h.mass$samples$H1), fill = "orange", alpha = 0.5) +
+  geom_density(aes(x = h.mass$samples$H1), fill = "#fc2187", alpha = 0.5) +
   theme_bw() +
   xlim(0,1) +
   labs(y = "density", x = "lambda: mass")

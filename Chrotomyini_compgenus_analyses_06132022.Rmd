@@ -50,7 +50,15 @@ d <-
          genus = factor(genus))
 
 # Specify colors for plots:
-cols = c("#86acca","#ab685b", "#3370a3", "#1f314c","#5a9fa8")
+# Pre-asm colors:
+#cols = c("#86acca","#ab685b", "#3370a3", "#1f314c","#5a9fa8")
+#ASM 2022 colors:
+cols = c("#00bbcd","#e6b531", "#adde79", "#2a098b","#ea908d")
+# Order: Apomys, Archboldomys, Chrotomys, Rhynchomys, Soricomys
+
+#Colors for Species-level plots:
+cols2 = c("#00bbcd","#00bbcd","#00bbcd","#e6b531", "#adde79","#adde79","#adde79", "#2a098b","#ea908d", "#ea908d", "#ea908d")
+# Order: A. banahao, A. datae, A. sierrae, A. maximus, C, mindorensis, C. silaceus, C. whiteheadi, S. kalinga, S. leonardocoi, S. montanus, R. labo
 ```
 
 Load in phylogeny: 
@@ -238,11 +246,11 @@ ch.74.1_halfeye <- ch.74.1 %>%
   stat_halfeye(aes(fill = .variable), 
                point_fill = "#000000", 
                shape = 21, 
-               point_size = 3, 
+               point_size = 6, 
                point_color = "#FFFFFF",
                interval_size = 10,
                interval_color = "grey40",
-               .width = .89) +
+               .width = c(0.5, 0.89)) +
   scale_fill_manual(values = cols)+
   geom_vline(xintercept = 0, linetype = "dashed")+
   ggtitle(label = "BV.TV by genus/mass/phylo")+
@@ -256,7 +264,7 @@ ch.71_halfeye|ch.72_halfeye|ch.74.1_halfeye
 
 Here are the difference distributions between pairs of genera for the model including only genus, mass, and phylo as predictors:
 ```{r}
-ch.74.1 %>%
+f <-ch.74.1 %>%
   gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
   compare_levels(.value, by = .variable) %>%
   mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
@@ -294,6 +302,33 @@ ch.74.1 <-  add_criterion(ch.74.1, c("waic", "loo")) # genus mass phylogeny
 loo(ch.71) # genus only : 0 Pareto K > 0.5
 loo(ch.72) # genus and mass : 0 Pareto K > 0.5
 loo(ch.74.1) # genus mass phylogeny : 0 Pareto K > 0.5
+```
+
+Species-level model and halfeye plot:
+```{r}
+# Load model:
+ch.74.3 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.74.3")
+
+# plot:
+ch.74.3_halfeye <- ch.74.3 %>%
+  gather_draws(b_taxonApomys_banahao,b_taxonApomys_datae,b_taxonApomys_sierrae,b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus,b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 6, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "BV.TV by species/mass/phylo")+
+  labs(x = "BV.TV", y = "species")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
 ```
 
 
@@ -438,7 +473,7 @@ ch.84_halfeye <- ch.84 %>%
   stat_halfeye(aes(fill = .variable), 
                point_fill = "#000000", 
                shape = 21, 
-               point_size = 3, 
+               point_size = 6, 
                point_color = "#FFFFFF",
                interval_size = 10,
                interval_color = "grey40",
@@ -470,6 +505,32 @@ ph.bvtv.pl <- ggplot() +
 ph.bvtv.pl
 ```
 
+Species-level model and halfeye plot:
+```{r}
+# Load model:
+ch.76 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.76")
+
+# plot:
+ch.76_halfeye <- ch.76 %>%
+  gather_draws(b_taxonApomys_banahao,b_taxonApomys_datae,b_taxonApomys_sierrae,b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus,b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 6, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Tb.Th by species/mass/phylo")+
+  labs(x = "Tb.Th", y = "species")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+```
 
 #####################################
 #### Trabecular Separation Tb.Sp ####
@@ -612,7 +673,7 @@ ch.88_halfeye <- ch.88 %>%
   stat_halfeye(aes(fill = .variable), 
                point_fill = "#000000", 
                shape = 21, 
-               point_size = 3, 
+               point_size = 6, 
                point_color = "#FFFFFF",
                interval_size = 10,
                interval_color = "grey40",
@@ -644,6 +705,31 @@ ph.tbsp.pl <- ggplot() +
 ph.tbsp.pl
 ```
 
+Species-level model and halfeye plot:
+```{r}
+#Load model
+ch.77 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.77")
+
+ch.77_halfeye <- ch.77 %>%
+  gather_draws(b_taxonApomys_banahao,b_taxonApomys_datae,b_taxonApomys_sierrae,b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus,b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 6, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Tb.Sp by species/mass/phylo")+
+  labs(x = "Tb.Sp", y = "species")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
+```
 
 #####################################
 #### Connectivity density Conn.D ####
@@ -786,7 +872,7 @@ ch.92_halfeye <- ch.92 %>%
   stat_halfeye(aes(fill = .variable), 
                point_fill = "#000000", 
                shape = 21, 
-               point_size = 3, 
+               point_size = 6, 
                point_color = "#FFFFFF",
                interval_size = 10,
                interval_color = "grey40",
@@ -816,6 +902,33 @@ ph.cond.pl <- ggplot() +
   xlim(0,1) +
   labs(y = "density", x = "lambda: connectivity density")
 ph.cond.pl
+```
+
+Species-level model and halfeye plot:
+```{r}
+# Load model:
+ch.78 <- 
+  brm(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\ch.78")
+
+# plot:
+ch.78_halfeye <- ch.78 %>%
+  gather_draws(b_taxonApomys_banahao,b_taxonApomys_datae,b_taxonApomys_sierrae,b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus,b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 6, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  ggtitle(label = "Conn.D by species/mass/phylo")+
+  labs(x = "Conn.D", y = "species")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))
 ```
 
 #### Phylogenetic signal in mass by itself:
