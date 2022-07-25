@@ -1,0 +1,319 @@
+---
+title: "Chrotomyini_composite_072022"
+author: "Stephanie M Smith"
+date: '2022-07-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(install = F, "ape", "bayesplot","BiocManager", "brms", "broom", "devtools", "flextable","ggfortify", "ggrepel", "gtools", "lattice","loo", "nlme", "patchwork", "Rcpp", "remotes", "rstan", "smatr", "StanHeaders", "tidybayes", "viridis", "viridisLite", "pacman")
+```
+
+Data load in, phylogeny, transformations:
+```{r}
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
+
+d <- 
+  d %>% 
+  mutate(bvtv = as.numeric(bvtv))
+
+d <- 
+  d %>%
+  mutate(mass_s = rethinking::standardize(log10(mass_g)),
+         elev_s = rethinking::standardize(elev), 
+         bvtv_s = rethinking::standardize(bvtv),
+         tbth_s = rethinking::standardize(tbth),
+         tbsp_s = rethinking::standardize(tbsp),
+         conn_s = rethinking::standardize(conn),
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
+         da_s = rethinking::standardize(da))
+
+# remove C. gonzalesi and R. isarogensis, singletons:
+d <- 
+  d %>% 
+  filter(taxon!="Chrotomys_gonzalesi") %>% 
+  filter(taxon!="Rhynchomys_isarogensis")
+
+# Make categorical vars into factors
+d <- 
+  d %>%
+  mutate(loco = factor(loco), 
+         hab_simp = factor(hab_simp),
+         genus = factor(genus))
+
+# Means version
+dmean <- d %>%
+  group_by(taxon) %>% 
+  summarize(mass_g = mean(mass_g),
+            bvtv = mean(bvtv),
+            tbth = mean(tbth),
+            tbsp = mean(tbsp),
+            m_connd = mean(m_connd))
+
+# All log10 version
+dlog <- d %>% 
+  mutate(masslog = log10(mass_g),
+         bvtvlog = log10(bvtv),
+         tbthlog = log10(tbth),
+         tbsplog = log10(tbsp),
+         condlog = log10(m_connd)
+  )
+  
+
+# Specify colors for genus-level plots:
+cols = c("#00bbcd","#e6b531", "#adde79", "#2a098b","#ea908d")
+# Order: Apomys, Archboldomys, Chrotomys, Rhynchomys, Soricomys
+
+#Colors for Species-level plots:
+cols2 = c("#00bbcd","#00bbcd","#00bbcd","#e6b531", "#adde79","#adde79","#adde79", "#2a098b","#ea908d", "#ea908d", "#ea908d")
+# Order: A. banahao, A. datae, A. sierrae, A. maximus, C, mindorensis, C. silaceus, C. whiteheadi, S. kalinga, S. leonardocoi, S. montanus, R. labo
+
+#### Phylogeny
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+
+dlog <- 
+  dlog %>% 
+  mutate(phylo = taxon)
+```
+
+I. Bayesian phylogenetic multilevel models.
+```{r}
+# BV.TV
+chr.1 <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.1")
+print(chr.1)
+plot(chr.1, N = 3, ask = F)
+
+# Tb.Th
+chr.2 <-
+  brm(data = d, 
+      family = student,
+      tbth_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.2")
+print(chr.2)
+
+# Tb.Sp
+chr.3 <-
+  brm(data = d, 
+      family = student,
+      tbsp_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.3")
+print(chr.3)
+
+# conn.D
+chr.4 <-
+  brm(data = d, 
+      family = student,
+      cond_s ~ 0 + taxon + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.4")
+print(chr.4)
+
+```
+
+II. Allometry with brms, smatr, and pgls.
+
+```{r}
+#### BV.TV ####
+# brms
+chr.5 <-
+  brm(data = dlog, 
+      family = student,
+      bvtvlog ~ 1 + masslog + (1|gr(phylo, cov = ch)),
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.5")
+print(chr.5)
+
+# smatr
+bvtv.sma <- sma(bvtv~mass_g, data = dmean, slope.test = 0, log = "xy", robust = T)
+summary(bvtv.sma)
+
+# PGLS
+bvtv.pgls <-  gls(log10(bvtv) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon), data = d, method = "ML")
+coef(bvtv.pgls)
+
+#### Tb.Th ####
+# brms
+chr.6 <-
+  brm(data = dlog, 
+      family = student,
+      tbthlog ~ 1 + masslog + (1|gr(phylo, cov = ch)),
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.6")
+print(chr.6)
+
+# smatr
+tbth.sma <- sma(tbth~mass_g, data = dmean, slope.test = 0, log = "xy", robust = T)
+summary(tbth.sma)
+
+# PGLS
+tbth.pgls <-  gls(log10(tbth) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon), data = d, method = "ML")
+coef(tbth.pgls)
+
+#### Tb.Sp ####
+# brms
+chr.7 <-
+  brm(data = dlog, 
+      family = student,
+      tbsplog ~ 1 + masslog + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.7")
+print(chr.7)
+
+# smatr
+tbsp.sma <- sma(tbsp~mass_g, data = dmean, slope.test = 0, log = "xy", robust = T)
+summary(tbsp.sma)
+
+# PGLS
+tbsp.pgls <-  gls(log10(tbsp) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon), data = d, method = "ML")
+coef(tbsp.pgls)
+
+#### conn.D ####
+# brms
+chr.8 <-
+  brm(data = dlog, 
+      family = student,
+      condlog ~ 1 + masslog + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.9), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.8")
+print(chr.8)
+
+# smatr
+cond.sma <- sma(m_connd~mass_g, data = dmean, slope.test = 0, log = "xy", robust = T)
+summary(cond.sma)
+
+# PGLS
+cond.pgls <-  gls(log10(m_connd) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon), data = d, method = "ML")
+coef(cond.pgls)
+```
+
+
+III. Phylogenetic signal.
+
+```{r}
+# Establish hypothesis to be tested
+hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"
+
+# BV.TV
+ps.bvtv <- hypothesis(chr.1, hyp, class = NULL)
+ps.bvtv
+
+# Tb.Th
+ps.tbth <- hypothesis(chr.2, hyp, class = NULL)
+ps.tbth
+
+# Tb.Sp
+ps.tbsp <- hypothesis(chr.3, hyp, class = NULL)
+ps.tbsp
+
+# conn.D
+ps.cond <- hypothesis(chr.4, hyp, class = NULL)
+ps.cond
+
+#### Plots ####
+
+bvtv.stpl <- ggplot() +
+  geom_density(aes(x = ps.bvtv$samples$H1), fill = "#fc2187", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: bone volume fraction")
+
+tbth.stpl <- ggplot() +
+  geom_density(aes(x = ps.tbth$samples$H1), fill = "#66116a", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular thickness")
+
+tbsp.stpl <- ggplot() +
+  geom_density(aes(x = ps.tbsp$samples$H1), fill = "#9f9ad2", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular separation")
+
+cond.stpl <- ggplot() +
+  geom_density(aes(x = ps.cond$samples$H1), fill = "#ecd156", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: connectivity density")
+bvtv.stpl/cond.stpl|tbth.stpl/tbsp.stpl
+```
+

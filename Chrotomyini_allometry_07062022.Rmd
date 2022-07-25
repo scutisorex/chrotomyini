@@ -1,0 +1,214 @@
+---
+title: "Chrotomyini allometry 07062022"
+author: "Stephanie M Smith"
+date: '2022-07-06'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+pacman::p_load(install = F, "ape", "devtools", "flextable", "ggmcmc", "ggrepel", "gtools", "lattice","loo", "patchwork", "Rcpp", "remotes", "viridisLite")
+```
+
+
+Data load in, phylogeny, transformations:
+```{r}
+d <- read.csv(file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\05062022 Philippine Murids segmentation parameters and morphological data - TBA data total BoneJ (full).csv", header = T)
+
+d <- d[d$tribe=="chroto",c(1:2, 4:23)]
+
+d <- 
+  d %>% 
+  mutate(bvtv = as.numeric(bvtv))
+
+d <- 
+  d %>%
+  mutate(mass_s = rethinking::standardize(log10(mass_g)),
+         elev_s = rethinking::standardize(elev), 
+         bvtv_s = rethinking::standardize(bvtv),
+         tbth_s = rethinking::standardize(tbth),
+         tbsp_s = rethinking::standardize(tbsp),
+         conn_s = rethinking::standardize(conn),
+         cond_s = rethinking::standardize(m_connd),
+         cond_s2 = rethinking::standardize(connd), 
+         da_s = rethinking::standardize(da))
+
+# remove C. gonzalesi and R. isarogensis, singletons:
+d <- 
+  d %>% 
+  filter(taxon!="Chrotomys_gonzalesi") %>% 
+  filter(taxon!="Rhynchomys_isarogensis")
+
+# Make categorical vars into factors
+d <- 
+  d %>%
+  mutate(loco = factor(loco), 
+         hab_simp = factor(hab_simp),
+         genus = factor(genus))
+
+# Means version
+dmean <- d %>%
+  group_by(taxon) %>% 
+  summarize(mass_g = mean(mass_g),
+            bvtv = mean(bvtv),
+            tbth = mean(tbth),
+            tbsp = mean(tbsp),
+            m_connd = mean(m_connd))
+# Specify colors for plots:
+# Pre-asm colors:
+#cols = c("#86acca","#ab685b", "#3370a3", "#1f314c","#5a9fa8")
+#ASM 2022 colors:
+cols = c("#00bbcd","#e6b531", "#adde79", "#2a098b","#ea908d")
+# Order: Apomys, Archboldomys, Chrotomys, Rhynchomys, Soricomys
+
+#Colors for Species-level plots:
+cols2 = c("#00bbcd","#00bbcd","#00bbcd","#e6b531", "#adde79","#adde79","#adde79", "#2a098b","#ea908d", "#ea908d", "#ea908d")
+# Order: A. banahao, A. datae, A. sierrae, A. maximus, C, mindorensis, C. silaceus, C. whiteheadi, S. kalinga, S. leonardocoi, S. montanus, R. labo
+
+#### Phylogeny
+ch.tre <- read.nexus(file = "G:\\My Drive\\Philippine rodents\\Chrotomys\\analysis\\SMS_PRUNED_and_COLLAPSED_03292022_OTUsrenamed_Rowsey_PhBgMCC_LzChrotomyini.nex")
+
+ch <- ape::vcv.phylo(ch.tre, corr = T)
+
+d <- 
+  d %>% 
+  mutate(phylo = taxon)
+```
+
+
+How about some allometry in case someone asks?
+SMA in smatr. NB: SMA is the same as RMA.
+```{r}
+
+library(smatr)
+g <- sma(bvtv~mass_g, data = d, slope.test = 0, log = "xy", robust = T)
+
+print(g) # slope = 0.315, p = 2.22e-16: positive allometry (slope is > 0). It's right around what the slope would be for isometry in a linear measurement, which is interesting, but there's no reason for it to be that because it is a dimensionless ratio. Bone Volume(mm^3)/Total volume (mm^3): the units cancel out. Right?
+
+g.1 <- sma(bvtv~mass_g, data = dmean, slope.test = 0, log = "xy", robust = T)
+print(g.1)
+plot(g.1)
+```
+
+```{r}
+ggplot(aes(x=tbth, y = mass_g), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  stat_smooth(method = lm)
+
+g2 <- sma(tbth~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g2) # slope = 0.328, p = 0.65: isometry (slope is not different from 1/3).  This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+
+g2.1 <- sma(tbth~mass_g, data = dmean, slope.test = 1/3, log = "xy", robust = T)
+print(g2.1)
+```
+
+```{r}
+
+ggplot(aes(x=mass_g, y = tbsp), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  geom_abline(slope = 0.271, intercept = -2.02)
+
+g3 <- sma(tbsp~mass_g, data = d, slope.test = 1/3, log = "xy", robust = T)
+print(g3) # slope = 0.271, p = 0.051... Isometry? Right on the damn edge. If it's negative allometry (slope is less than 1/3 is the test), it's very slight. This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses isometry = 1).
+plot(g3)
+
+g3.1 <- sma(tbsp~mass_g, data = dmean, slope.test = 1/3, log = "xy", robust = T)
+print(g3.1)
+```
+
+```{r}
+ggplot(aes(x=mass_g, y = m_connd), data = d)+
+  geom_point() +
+  scale_x_log10()+
+  scale_y_log10()+
+  #stat_smooth(method = lm)+
+  geom_abline(slope = -0.941, intercept = 6.1966)
+
+g4 <- sma(m_connd~mass_g, data = d, slope.test = -1, log = "xy", robust = T) # isometric slope -1 because it's connectivity per unit volume (1/mm^3). This differs from what Mielke et al 2018 uses because her body mass proxy is linear (she uses -3).
+print(g4) #slope = -1, p = 0.99: Isometry (slope not diff from -1)
+plot(g4)
+
+g4.1 <- sma(m_connd~mass_g, data = dmean, slope.test = -1, log = "xy", robust = T)
+print(g4.1)
+```
+
+
+PGLS allometry, using ape and NLME:
+```{r}
+library(nlme)
+pglsbvtv <- gls(log10(bvtv) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = d, method = "ML")
+print(pglsbvtv)
+ggplot(aes(y=log10(bvtv), x=log10(mass_g)), data = dmean)+
+  geom_point()+
+  geom_abline(intercept = coef(pglsbvtv)[1],  slope= coef(pglsbvtv)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(g.1)[1],  slope= coef(g.1)[2], lwd = 3)
+
+```
+
+It doesn't get mad when I give it multiple observations per species. What is it doing with those? Is it calculating means? Compare:
+```{r}
+pglsbvtv2 <- gls(log10(bvtv) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon), data = dmean, method = "ML")
+print(pglsbvtv2)
+summary(pglsbvtv2)
+intervals(pglsbvtv2)
+
+ggplot(aes(y=log10(bvtv), x=log10(mass_g)), data = dmean)+
+  geom_point()+
+  #geom_abline(intercept = coef(pglsbvtv)[1],  slope= coef(pglsbvtv)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(pglsbvtv2)[1],  slope= coef(pglsbvtv2)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(g.1)[1],  slope= coef(g.1)[2], lwd = 3)
+
+```
+
+```{r}
+pglstbth <- gls(log10(tbth) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),data = d, method = "ML")
+print(pglstbth)
+
+pglstbth2 <- gls(log10(tbth) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = dmean, method = "ML")
+intervals(pglstbth2)
+
+ggplot(aes(y=log10(tbth), x=log10(mass_g)), data = dmean)+
+  geom_point()+
+  #geom_abline(intercept = coef(pglstbth)[1],  slope= coef(pglstbth)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(pglstbth2)[1],  slope= coef(pglstbth2)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(g2)[1],  slope= coef(g2)[2], lwd = 3)
+
+```
+```{r}
+pglstbsp <- gls(log10(tbsp) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = d, method = "ML")
+print(pglstbsp)
+
+pglstbsp2 <- gls(log10(tbsp) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = dmean, method = "ML")
+intervals(pglstbsp2)
+
+ggplot(aes(y=log10(tbsp), x=log10(mass_g)), data = dmean)+
+  geom_point()+
+  geom_abline(intercept = coef(pglstbsp2)[1],  slope= coef(pglstbsp2)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(g3.1)[1],  slope= coef(g3.1)[2], lwd = 3)
+```
+
+```{r}
+pglscond <- gls(log10(m_connd) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = d, method = "ML")
+print(pglscond)
+
+
+pglscond2 <- gls(log10(m_connd) ~ log10(mass_g), correlation = corBrownian(phy = ch.tre, form = ~taxon),
+    data = dmean, method = "ML")
+intervals(pglscond2)
+
+ggplot(aes(y=log10(m_connd), x=log10(mass_g)), data = dmean)+
+  geom_point()+
+  geom_abline(intercept = coef(pglscond2)[1],  slope= coef(pglscond2)[2], col = "pink", lwd = 3)+
+  geom_abline(intercept = coef(g4.1)[1],  slope= coef(g4.1)[2], lwd = 3)
+```
+
