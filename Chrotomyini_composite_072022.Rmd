@@ -89,7 +89,7 @@ dlog <-
 
 I. Bayesian phylogenetic multilevel models.
 ```{r}
-# BV.TV
+# BV.TV, species
 chr.1 <-
   brm(data = d, 
       family = student,
@@ -105,9 +105,67 @@ chr.1 <-
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.1")
 print(chr.1)
-plot(chr.1, N = 3, ask = F)
 
-# Tb.Th
+# BV.TV, genus
+chr.1.1 <-
+  brm(data = d, 
+      family = student,
+      bvtv_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.1.1")
+print(chr.1.1)
+
+chr.1.plot <- chr.1 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "BV.TV", y = "species")+
+  ggtitle(label = "BV.TV by species")
+
+chr.1.1.plot <- chr.1.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "BV.TV", y = "genus")+
+  ggtitle(label = "BV.TV by genus")
+
+chr.1.plot|chr.1.1.plot
+```
+
+```{r}
+# Tb.Th, species
 chr.2 <-
   brm(data = d, 
       family = student,
@@ -124,7 +182,67 @@ chr.2 <-
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.2")
 print(chr.2)
 
-# Tb.Sp
+# Tb.Th, genus
+chr.2.1 <-
+  brm(data = d, 
+      family = student,
+      tbth_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.2.1")
+print(chr.2.1)
+
+chr.2.plot <- chr.2 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Tb.Th", y = "species")+
+  ggtitle(label = "Tb.Th by species")
+
+chr.2.1.plot <- chr.2.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Tb.Th", y = "genus")+
+  ggtitle(label = "Tb.Th by genus")
+
+chr.2.plot|chr.2.1.plot
+
+```
+
+```{r}
+# Tb.Sp, species
 chr.3 <-
   brm(data = d, 
       family = student,
@@ -141,7 +259,66 @@ chr.3 <-
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.3")
 print(chr.3)
 
-# conn.D
+# Tb.Sp, genus
+chr.3.1 <-
+  brm(data = d, 
+      family = student,
+      tbsp_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.3.1")
+print(chr.3.1)
+
+chr.3.plot <- chr.3 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Tb.Sp", y = "species")+
+  ggtitle(label = "Tb.Sp by species")
+
+chr.3.1.plot <- chr.3.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Tb.Sp", y = "genus")+
+  ggtitle(label = "Tb.Sp by genus")
+
+chr.3.plot|chr.3.1.plot
+```
+
+```{r}
+# conn.D, species
 chr.4 <-
   brm(data = d, 
       family = student,
@@ -158,9 +335,185 @@ chr.4 <-
       file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.4")
 print(chr.4)
 
+
+# conn.D, genus
+chr.4.1 <-
+  brm(data = d, 
+      family = student,
+      cond_s ~ 0 + genus + mass_s + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.95), #inserted to decrease the number of divergent transitions here
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = b),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.4.1")
+print(chr.4.1)
+
+
+chr.4.plot <- chr.4 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .89) +
+  scale_fill_manual(values = cols2)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Conn.D", y = "species")+
+  ggtitle(label = "Conn.D by species")
+
+chr.4.1.plot <- chr.4.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye(aes(fill = .variable), 
+               point_fill = "#000000", 
+               shape = 21, 
+               point_size = 3, 
+               point_color = "#FFFFFF",
+               interval_size = 10,
+               interval_color = "grey40",
+               .width = .95) +
+  scale_fill_manual(values = cols)+
+  geom_vline(xintercept = 0, linetype = "dashed")+
+  theme(legend.position = "none", 
+        plot.title = element_text(size = 9))+
+  labs(x = "Conn.D", y = "genus")+
+  ggtitle(label = "Conn.D by genus")
+
+chr.4.plot|chr.4.1.plot
 ```
 
-II. Allometry with brms, smatr, and pgls.
+II. Comparison of TB metrics between taxa (substrate use proxy).
+
+```{r}
+#### BV.TV ####
+bvtv.comp.s <-chr.1 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-species BV.TV difference distributions")+
+  labs(x = "difference", y = "comparison")
+
+bvtv.comp.g <-chr.1.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-genus BV.TV difference distributions")+
+  labs(x = "difference", y = "comparison")
+bvtv.comp.g
+bvtv.comp.s
+```
+
+```{r}
+#### Tb.Th ####
+tbth.comp.s <-chr.2 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-species Tb.Th difference distributions")+
+  labs(x = "difference", y = "comparison")
+
+tbth.comp.g <-chr.2.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-genus Tb.Th difference distributions")+
+  labs(x = "difference", y = "comparison")
+tbth.comp.g
+tbth.comp.s
+```
+
+```{r}
+#### Tb.Sp ####
+tbsp.comp.s <-chr.3 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-species Tb.Sp difference distributions")+
+  labs(x = "difference", y = "comparison")
+
+tbsp.comp.g <-chr.3.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-genus Tb.Sp difference distributions")+
+  labs(x = "difference", y = "comparison")
+tbsp.comp.g
+tbsp.comp.s
+```
+
+```{r}
+#### Conn.D ####
+cond.comp.s <-chr.4 %>%
+  gather_draws(b_taxonApomys_banahao, b_taxonApomys_datae, b_taxonApomys_sierrae, b_taxonArchboldomys_maximus, b_taxonChrotomys_mindorensis, b_taxonChrotomys_silaceus, b_taxonChrotomys_whiteheadi, b_taxonRhynchomys_labo, b_taxonSoricomys_kalinga, b_taxonSoricomys_leonardocoi, b_taxonSoricomys_montanus) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_taxon", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-species Conn.D difference distributions")+
+  labs(x = "difference", y = "comparison")
+
+cond.comp.g <-chr.4.1 %>%
+  gather_draws(b_genusApomys,b_genusArchboldomys, b_genusChrotomys, b_genusRhynchomys, b_genusSoricomys) %>%
+  compare_levels(.value, by = .variable) %>%
+  mutate(.variable = str_replace_all(.variable, "b_genus", "")) %>%
+  ungroup() %>%
+  mutate(loco = reorder(.variable, .value)) %>%
+  ggplot(aes(y = .variable, x = .value)) +
+  stat_halfeye() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ggtitle(label = "Between-genus Conn.D difference distributions")+
+  labs(x = "difference", y = "comparison")
+cond.comp.g
+cond.comp.s
+```
+
+III. Allometry with brms, smatr, and pgls.
 
 ```{r}
 #### BV.TV ####
@@ -267,29 +620,37 @@ coef(cond.pgls)
 ```
 
 
-III. Phylogenetic signal.
+IV. Phylogenetic signal of trabecular bone metrics.
 
 ```{r}
 # Establish hypothesis to be tested
 hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"
 
 # BV.TV
+ps.bvtv.1 <- hypothesis(chr.1.1, hyp, class = NULL)
+ps.bvtv.1 # genus
 ps.bvtv <- hypothesis(chr.1, hyp, class = NULL)
-ps.bvtv
+ps.bvtv # species
 
 # Tb.Th
+ps.tbth.1 <- hypothesis(chr.2.1, hyp, class = NULL)
+ps.tbth.1 # genus
 ps.tbth <- hypothesis(chr.2, hyp, class = NULL)
-ps.tbth
+ps.tbth # species
 
 # Tb.Sp
+ps.tbsp.1 <- hypothesis(chr.3.1, hyp, class = NULL)
+ps.tbsp.1 # genus
 ps.tbsp <- hypothesis(chr.3, hyp, class = NULL)
-ps.tbsp
+ps.tbsp # species
 
 # conn.D
+ps.cond.1 <- hypothesis(chr.4.1, hyp, class = NULL)
+ps.cond.1  # genus
 ps.cond <- hypothesis(chr.4, hyp, class = NULL)
-ps.cond
+ps.cond # species
 
-#### Plots ####
+#### Plots: species-level ####
 
 bvtv.stpl <- ggplot() +
   geom_density(aes(x = ps.bvtv$samples$H1), fill = "#fc2187", alpha = 0.5) +
@@ -316,4 +677,74 @@ cond.stpl <- ggplot() +
   labs(y = "density", x = "lambda: connectivity density")
 bvtv.stpl/cond.stpl|tbth.stpl/tbsp.stpl
 ```
+
+```{r}
+#### Plots: genus-level ####
+bvtv.stpl.1 <- ggplot() +
+  geom_density(aes(x = ps.bvtv.1$samples$H1), fill = "#fc2187", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: bone volume fraction")
+
+tbth.stpl.1 <- ggplot() +
+  geom_density(aes(x = ps.tbth.1$samples$H1), fill = "#66116a", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular thickness")
+
+tbsp.stpl.1 <- ggplot() +
+  geom_density(aes(x = ps.tbsp.1$samples$H1), fill = "#9f9ad2", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: trabecular separation")
+
+cond.stpl.1 <- ggplot() +
+  geom_density(aes(x = ps.cond.1$samples$H1), fill = "#ecd156", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: connectivity density")
+bvtv.stpl.1/cond.stpl.1|tbth.stpl.1/tbsp.stpl.1
+```
+
+
+V. Connectivity density (Conn.D) vs BV.TV
+```{r}
+cor.test(d$cond_s,d$bvtv_s) # cor = -0.16, p = 0.18. CIs = -0.38-0.080. Weak.
+ggplot(aes(y = cond_s, x = bvtv_s, color = genus), data = d)+
+  scale_fill_manual(values = cols)+
+  geom_point()
+  
+```
+
+VI. Phylogenetic signal of mass alone.
+
+```{r}
+chr.9 <-   
+  brm(data = d, 
+      family = student,
+      mass_s ~ 0 + (1|gr(phylo, cov = ch)),
+      control = list(adapt_delta = 0.98), #inserted to decrease the number of divergent transitions
+      prior = c(
+        prior(gamma(2, 0.1), class = nu),
+        prior(normal(0, 1), class = sd),
+        prior(exponential(1), class = sigma)
+        ),
+      data2 = list(ch = ch),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4,
+      file = "G:\\My Drive\\Philippine rodents\\chrotomyini\\fits\\chr.9")
+print(chr.9)
+```
+
+```{r}
+ps.mass <- hypothesis(chr.9, hyp, class = NULL)
+ps.mass #lambda = 0.95, CIs: 0.91-0.98
+mass.stpl <- ggplot() +
+  geom_density(aes(x =ps.mass$samples$H1), fill = "#fc2187", alpha = 0.5) +
+  theme_bw() +
+  xlim(0,1) +
+  labs(y = "density", x = "lambda: mass")
+
+mass.stpl
+```
+
 
